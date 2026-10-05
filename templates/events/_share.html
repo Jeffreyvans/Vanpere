@@ -1,0 +1,8 @@
+<div class="share" role="group" aria-label="Share this event">
+<a class="btn wa" href="https://wa.me/?text={{ share_text|urlencode:'' }}" target="_blank" rel="noopener">Share on WhatsApp</a>
+<a class="btn" href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode:'' }}" target="_blank" rel="noopener">Facebook</a>
+<a class="btn" href="mailto:?subject={{ share_subject|urlencode:'' }}&amp;body={{ share_text|urlencode:'' }}">Email</a>
+<button class="btn" type="button" data-copy="{{ share_url }}">Copy link</button>
+<button class="btn" type="button" data-native-share data-title="{{ share_subject }}" data-text="{{ share_text }}" data-url="{{ share_url }}" hidden>Share&hellip;</button>
+<p class="hint" role="status" aria-live="polite" data-share-status></p>
+</div>

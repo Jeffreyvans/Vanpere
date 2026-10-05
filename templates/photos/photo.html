@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}A photo from {{ event.name }} | VanPere Digital{% endblock %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block og %}<meta property="og:type" content="website">
+<meta property="og:site_name" content="VanPere Digital">
+<meta property="og:title" content="A photo from {{ event.name }}">
+<meta property="og:description" content="Shared on VanPere Digital.">
+<meta property="og:url" content="{{ share_url }}">
+{% if og_image %}<meta property="og:image" content="{{ og_image }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ og_image }}">{% endif %}{% endblock %}
+{% block content %}<div class="container narrow">
+{% if expired %}<div class="card"><h1>This event has ended</h1><p>This photo is no longer available.</p></div>
+{% elif needs_pin %}<h1>{{ event.name }}</h1>{% include "photos/_pin_form.html" %}
+{% else %}<h1>{{ event.name }}</h1>
+<img class="reviewimg" src="{{ image_url }}" alt="Photo shared at {{ event.name }}">
+<p><a class="btn" href="{% url 'photos:photo_download' event.public_code photo.id %}">Download{% if not event.allow_downloads %} (medium quality){% endif %}</a>
+<a class="btn gold" href="{% url 'photos:gallery' event.public_code %}">View the whole gallery</a></p>
+<h2>Share this photo</h2>{% include "events/_share.html" %}
+<script type="module" src="{% static 'js/share.js' %}"></script>{% endif %}
+</div>{% endblock %}

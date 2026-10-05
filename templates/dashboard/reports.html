@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Reports | {{ event.name }}{% endblock %}
+{% block content %}<div class="container"><h1>{{ event.name }}</h1>{% include "dashboard/_nav.html" %}
+{% for p in photos %}<div class="card report"><img src="{{ p.thumb_url }}" alt="Reported photo" width="160">
+<div><p><strong>{{ p.n_reports }} report{{ p.n_reports|pluralize }}</strong> &middot; {{ p.get_status_display }}{% if p.auto_hidden %} (auto-hidden){% endif %}</p>
+<ul>{% for r in p.open_reports %}<li>{{ r.get_reason_display }}{% if r.note %}: {{ r.note }}{% endif %} <small>(device {{ r.reporter_hash|slice:":6" }}, {{ r.created_at|date:"j M, H:i" }})</small></li>{% endfor %}</ul>
+<form method="post" action="{% url 'dashboard:report_action' event.pk p.id %}">{% csrf_token %}
+<button class="btn" name="action" value="dismiss">Dismiss reports</button>
+<button class="btn" name="action" value="hide">Hide photo</button>
+<button class="btn danger" name="action" value="delete" data-confirm="Permanently delete this photo?">Delete permanently</button></form></div></div>
+{% empty %}<p>No open reports.</p>{% endfor %}
+<script type="module" src="{% static 'js/dashboard/select.js' %}"></script></div>{% endblock %}

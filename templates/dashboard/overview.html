@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | VanPere Digital{% endblock %}
+{% block content %}<div class="container"><h1>Dashboard</h1>
+{% if over_quota %}<p class="banner" role="alert"><strong>Storage quota exceeded.</strong> You are using {{ used|filesizeformat }} of your {{ quota|filesizeformat }} soft quota. Delete old events or photos, or contact the administrator.</p>
+{% elif near_quota %}<p class="banner" role="status">You have used {{ quota_percent }}% of your {{ quota|filesizeformat }} storage quota.</p>{% endif %}
+<div class="stats"><div class="card"><strong>{{ total_photos }}</strong><span>photos</span></div>
+<div class="card"><strong>{{ used|filesizeformat }}</strong><span>storage used{% if quota %} of {{ quota|filesizeformat }}{% endif %}</span></div>
+<div class="card"><strong>{{ total_pending }}</strong><span>awaiting moderation</span></div>
+<div class="card"><strong>{{ total_reports }}</strong><span>photos with open reports</span></div></div>
+<h2>Your events</h2>
+<div class="grid">{% for e in events %}<div class="card"><h3><a href="{% url 'dashboard:event' e.pk %}">{{ e.name }}</a></h3>
+<p>{{ e.n_photos }} photo{{ e.n_photos|pluralize }} &middot; {{ e.n_contributors }} contributor{{ e.n_contributors|pluralize }} &middot; {{ e.storage_used_bytes|filesizeformat }}</p>
+<p>{% if e.is_expired %}Expired{% else %}{{ e.days_remaining }} day{{ e.days_remaining|pluralize }} remaining{% endif %}
+{% if e.n_pending %} &middot; <strong>{{ e.n_pending }} pending</strong>{% endif %}{% if e.n_reports %} &middot; <strong>{{ e.n_reports }} reported</strong>{% endif %}</p></div>
+{% empty %}<p>No events yet. <a href="{% url 'events:create' %}">Create one</a>.</p>{% endfor %}</div></div>{% endblock %}

@@ -1,0 +1,17 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live slideshow | {{ event.name }}</title><meta name="robots" content="noindex">
+<link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'css/main.css' %}"></head>
+<body class="showbody">
+{% if expired %}<div class="container narrow"><div class="card"><h1>This event has ended</h1></div></div>
+{% elif needs_pin %}<div class="container narrow">{% include "photos/_pin_form.html" %}</div>
+{% else %}
+<div id="show" class="show" data-api="/api/events/{{ event.public_code }}/" data-interval="{{ interval }}">
+<img id="a" class="layer" alt=""><img id="b" class="layer" alt="">
+<p id="empty" class="empty">Waiting for the first photos&hellip;<br>Scan the QR code to share yours.</p>
+<h1 class="title">{{ event.name }}</h1>
+<div class="corner"><img src="{{ qr_uri }}" alt="QR code to share photos"><div><strong>Share your photos</strong><br>{{ short_url }}</div></div>
+<div class="controls"><button class="btn" id="fs" type="button">Fullscreen</button> <span>Keys: &larr; &rarr; skip, + / - speed</span></div></div>
+<script type="module" src="{% static 'js/gallery/slideshow.js' %}"></script>{% endif %}
+</body></html>

@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Quick review | {{ event.name }}{% endblock %}
+{% block content %}<div class="container narrow"><h1>{{ event.name }}</h1>{% include "dashboard/_nav.html" %}
+{% if photo %}<p role="status">{{ total }} photo{{ total|pluralize }} waiting. Keys: <kbd>A</kbd> approve, <kbd>R</kbd> reject, <kbd>S</kbd> skip.</p>
+<img class="reviewimg" src="{{ photo.medium_url }}" alt="Photo to review by {{ photo.uploader_name|default:'Anonymous' }}">
+<p>{{ photo.uploader_name|default:"Anonymous" }} &middot; uploaded {{ photo.created_at|date:"j M Y, H:i" }}</p>
+<form method="post" action="{% url 'dashboard:bulk' event.pk %}" id="review-form">{% csrf_token %}
+<input type="hidden" name="ids" value="{{ photo.id }}"><input type="hidden" name="next" value="{{ here }}">
+<button class="btn gold" id="approve" name="action" value="approve">Approve (A)</button>
+<input id="reason" name="reason" placeholder="Reject reason (optional)" maxlength="200" aria-label="Reject reason">
+<button class="btn" id="reject" name="action" value="reject">Reject (R)</button>
+<a class="btn" id="skip" href="?i={{ next_i }}">Skip (S)</a></form>
+{% else %}<div class="card"><h2>All caught up</h2><p>No photos are waiting for review.</p></div>{% endif %}</div>
+<script type="module" src="{% static 'js/dashboard/review.js' %}"></script>{% endblock %}

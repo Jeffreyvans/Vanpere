@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Gallery | {{ event.name }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}<div class="container">
+<h1>{{ event.name }}</h1>
+<p><a href="{{ event.public_path }}">Back to event</a> &middot; <a class="btn gold" href="{% url 'photos:upload' event.public_code %}">Share your photos</a></p>
+{% if expired %}<div class="card"><h2>This event has ended</h2><p>The gallery is no longer available.</p></div>
+{% elif needs_pin %}{% include "photos/_pin_form.html" %}
+{% else %}
+<div id="gallery" data-api="/api/events/{{ event.public_code }}/" data-share="{{ event.public_url }}" data-name="{{ event.name }}">
+<p id="count" class="hint" role="status" aria-live="polite"></p>
+<div id="columns" class="masonry"></div>
+<div id="sentinel" aria-hidden="true"></div>
+<p><button id="more" class="btn" type="button" hidden>Load more</button></p>
+<p id="empty" hidden>No photos yet. Be the first to share!</p>
+<p id="error" class="err" role="alert" hidden></p></div>
+<div id="viewer" class="viewer" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
+<button id="v-close" class="vbtn vclose" type="button" aria-label="Close viewer">&times;</button>
+<button id="v-prev" class="vbtn vprev" type="button" aria-label="Previous photo">&lsaquo;</button>
+<button id="v-next" class="vbtn vnext" type="button" aria-label="Next photo">&rsaquo;</button>
+<div id="v-stage" class="vstage"><img id="v-img" alt=""></div>
+<div class="vbar"><button class="vbtn" id="v-share" type="button">Share</button>
+<a class="vbtn" id="v-download" href="#">Download</a>
+<button class="vbtn" id="v-report-open" type="button">Report</button>
+<button class="vbtn" id="v-delete" type="button" hidden>Delete</button></div>
+<p class="vnote">{% if event.allow_downloads %}Downloads are the full-size original.{% else %}Downloads are medium quality; the organiser has not enabled originals.{% endif %}</p>
+<form id="v-report" class="vreport" hidden>
+<label for="v-reason">Why are you reporting this photo?</label>
+<select id="v-reason"><option value="inappropriate">Inappropriate or offensive</option><option value="privacy">Privacy concern</option><option value="spam">Spam or unrelated</option><option value="other">Something else</option></select>
+<label for="v-note">Note (optional)</label><input id="v-note" maxlength="300">
+<button class="vbtn" type="submit">Send report</button><button class="vbtn" id="v-report-cancel" type="button">Cancel</button></form>
+<p id="v-status" class="vnote" role="status" aria-live="polite"></p></div>
+<script type="module" src="{% static 'js/gallery/gallery.js' %}"></script>{% endif %}
+</div>{% endblock %}

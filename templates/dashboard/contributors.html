@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Contributors | {{ event.name }}{% endblock %}
+{% block content %}<div class="container"><h1>{{ event.name }}</h1>{% include "dashboard/_nav.html" %}
+<p class="hint">Names are typed by guests and may be blank or made up. Devices are anonymised.</p>
+<table class="dtable"><thead><tr><th>Name</th><th>Device</th><th>Photos</th><th>Approved</th><th>Last upload</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{ r.name }}</td><td>#{{ r.short }}</td><td>{{ r.n }}</td><td>{{ r.approved }}</td><td>{{ r.last|date:"j M, H:i" }}</td>
+<td><form method="post" action="{% url 'dashboard:contributor_remove' event.pk %}">{% csrf_token %}<input type="hidden" name="device" value="{{ r.uploader_hash }}">
+<button class="btn danger" data-confirm="Delete all {{ r.n }} photo(s) from this device?">Remove all photos</button></form></td></tr>
+{% empty %}<tr><td colspan="6">No contributors yet.</td></tr>{% endfor %}</tbody></table>
+<script type="module" src="{% static 'js/dashboard/select.js' %}"></script></div>{% endblock %}

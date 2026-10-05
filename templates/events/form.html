@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{% if event %}Edit event{% else %}Create an event{% endif %} | VanPere Digital{% endblock %}
+{% block content %}<div class="container narrow"><div class="card"><h1>{% if event %}Edit event{% else %}Create an event{% endif %}</h1>
+<form method="post" enctype="multipart/form-data" novalidate data-default-days="{{ default_days }}">{% csrf_token %}
+{% include "partials/form_fields.html" %}
+<p id="expiry-hint" class="hint" aria-live="polite"></p>
+<button class="btn gold" type="submit">Save event</button></form></div></div>
+<script type="module" src="{% static 'js/event-form.js' %}"></script>{% endblock %}

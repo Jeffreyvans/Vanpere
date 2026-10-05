@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}My events | VanPere Digital{% endblock %}
+{% block content %}<div class="container"><h1>My events</h1>
+{% if user.email_verified %}<p><a class="btn gold" href="{% url 'events:create' %}">Create an event</a></p>
+{% else %}<p class="banner">Verify your email on your <a href="{% url 'accounts:home' %}">account page</a> to create events.</p>{% endif %}
+<div class="grid">{% for e in events %}<div class="card"><h2><a href="{% url 'events:detail' e.pk %}">{{ e.name }}</a></h2>
+<p>{{ e.event_date|date:"j F Y" }} &middot; code <strong>{{ e.public_code }}</strong></p>
+<p>{% if e.is_expired %}Expired{% else %}{{ e.days_remaining }} day{{ e.days_remaining|pluralize }} remaining{% endif %}</p></div>
+{% empty %}<p>No events yet.</p>{% endfor %}</div></div>{% endblock %}

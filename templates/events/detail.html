@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{{ event.name }} | VanPere Digital{% endblock %}
+{% block content %}<div class="container"><h1>{{ event.name }}</h1>
+<p>{{ event.get_event_type_display }} &middot; {{ event.event_date|date:"l, j F Y" }}{% if event.location %} &middot; {{ event.location }}{% endif %}</p>
+<p>{% if event.is_expired %}<strong>Expired.</strong>{% else %}{{ event.days_remaining }} day{{ event.days_remaining|pluralize }} remaining.{% endif %}
+Photos can be shared until {{ event.expires_at|date:"j F Y, H:i" }} (Africa/Harare).</p>
+<div class="grid"><div class="card"><h2>Guest link</h2>
+<p><input class="linkbox" readonly value="{{ share_url }}" aria-label="Guest link"></p>
+{% include "events/_share.html" %}
+<p><a href="{{ event.public_path }}">Open the guest page</a> &middot; <a href="{% url 'events:edit' event.pk %}">Edit event</a> &middot; <a href="{% url 'dashboard:event' event.pk %}">Dashboard</a></p>
+<p><a href="{% url 'photos:gallery' event.public_code %}">Gallery</a> &middot; <a href="{% url 'photos:slideshow' event.public_code %}" target="_blank" rel="noopener">Live slideshow</a></p></div>
+<div class="card"><h2>QR code</h2>
+<img src="{% url 'events:qr_png' event.pk %}" alt="QR code for {{ event.name }}" width="240" height="240">
+<p><a href="{% url 'events:qr_png' event.pk %}" download>PNG</a> &middot; <a href="{% url 'events:qr_svg' event.pk %}" download>SVG</a></p>
+<h3>Print posters</h3><p><a href="{% url 'events:poster' event.pk 'a4' %}">A4</a> &middot; <a href="{% url 'events:poster' event.pk 'a5' %}">A5</a> &middot; <a href="{% url 'events:poster' event.pk 'table' %}">Table card</a></p></div></div></div>
+<script type="module" src="{% static 'js/share.js' %}"></script>{% endblock %}

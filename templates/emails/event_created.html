@@ -1,0 +1,5 @@
+{% extends "emails/base.html" %}{% block body %}
+<p>Your event <strong>{{ event.name }}</strong> is live.</p>
+<p>Guest link: <a href="{{ event.public_url }}">{{ event.public_url }}</a></p>
+<p>Photos can be shared until {{ event.expires_at|date:"j F Y, H:i" }} (Africa/Harare).</p>
+<p><a href="{{ manage_url }}" style="background:#C9A24B;color:#1B1A2E;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold;display:inline-block">Share and print your QR code</a></p>{% endblock %}

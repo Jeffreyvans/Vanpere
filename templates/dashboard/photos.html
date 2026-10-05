@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Photos | {{ event.name }}{% endblock %}
+{% block content %}<div class="container"><h1>{{ event.name }}</h1>{% include "dashboard/_nav.html" %}
+<div class="tabs" role="tablist">{% for t, n in counts.items %}<a href="?tab={{ t }}" class="{% if t == tab %}on{% endif %}" aria-current="{% if t == tab %}page{% else %}false{% endif %}">{{ t|capfirst }} ({{ n }})</a>{% endfor %}</div>
+<form method="get" class="filters"><input type="hidden" name="tab" value="{{ tab }}">
+<label>Contributor <input name="q" value="{{ q }}" placeholder="Name contains"></label>
+<label>Sort <select name="sort"><option value="new" {% if sort == "new" %}selected{% endif %}>Newest first</option><option value="old" {% if sort == "old" %}selected{% endif %}>Oldest first</option></select></label>
+<button class="btn" type="submit">Filter</button></form>
+{% if page.object_list %}
+<form method="post" action="{% url 'dashboard:bulk' event.pk %}" id="bulk">{% csrf_token %}<input type="hidden" name="next" value="{{ here }}">
+<div class="bulkbar"><button class="btn" type="button" id="select-all">Select all on this page</button>
+<button class="btn gold" name="action" value="approve">{% if tab == "approved" %}Keep approved{% else %}Approve{% endif %}</button>
+<input name="reason" placeholder="Reject reason (optional)" maxlength="200" aria-label="Reject reason">
+<button class="btn" name="action" value="reject">Reject</button>
+{% if tab == "approved" %}<button class="btn" name="action" value="cover">Set as cover</button>{% endif %}
+<button class="btn danger" name="action" value="delete" data-confirm="Permanently delete the selected photos?">Delete</button></div>
+<div class="dgrid">{% for p in page %}<label class="dthumb"><input type="checkbox" name="ids" value="{{ p.id }}">
+<img src="{{ p.thumb_url }}" alt="Photo by {{ p.uploader_name|default:'Anonymous' }}" loading="lazy" width="{{ p.width }}" height="{{ p.height }}">
+<span>{{ p.uploader_name|default:"Anonymous" }} &middot; {{ p.created_at|date:"j M, H:i" }}{% if p.rejected_reason %}<br>Reason: {{ p.rejected_reason }}{% endif %}{% if p.auto_hidden %}<br>Hidden after reports{% endif %}</span></label>{% endfor %}</div></form>
+<p class="pager">{% if page.has_previous %}<a href="?{{ keep }}&amp;page={{ page.previous_page_number }}">&larr; Newer</a>{% endif %}
+Page {{ page.number }} of {{ page.paginator.num_pages }}
+{% if page.has_next %}<a href="?{{ keep }}&amp;page={{ page.next_page_number }}">Older &rarr;</a>{% endif %}</p>
+{% else %}<p>No {{ tab }} photos{% if q %} matching "{{ q }}"{% endif %}.</p>{% endif %}</div>
+<script type="module" src="{% static 'js/dashboard/select.js' %}"></script>{% endblock %}

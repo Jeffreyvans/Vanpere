@@ -1,0 +1,8 @@
+{% autoescape off %}Your event "{{ event.name }}" expires in {{ days }} day{{ days|pluralize }}, on {{ event.expires_at|date:"j F Y, H:i" }} (Africa/Harare).
+
+After that, guests can no longer upload or view photos, and the files are deleted after a grace period. Download your photos or extend the expiry date before then.
+
+Open your dashboard: {{ manage_url }}
+
+VanPere Digital
+{% endautoescape %}

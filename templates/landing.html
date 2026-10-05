@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+<section class="hero"><h1>Every guest's photos, in one place</h1>
+<p>Create an event, share a QR code on WhatsApp or print it, and let guests upload and view photos. No app, no account for guests.</p>
+<a class="btn gold" href="{% url 'accounts:register' %}">Create your event</a></section>
+<section id="how"><h2>How it works</h2><div class="grid">
+<div class="card"><h3>1. Create</h3><p>Set up your wedding, birthday, funeral, church or corporate event in minutes.</p></div>
+<div class="card"><h3>2. Scan</h3><p>Guests scan your QR code or tap the WhatsApp link.</p></div>
+<div class="card"><h3>3. Share</h3><p>Every photo lands in one gallery, with a live slideshow for the venue.</p></div></div></section>
+<section><h2>Built for real events</h2><div class="grid">
+<div class="card">Weddings and birthdays</div><div class="card">Funerals and church events</div>
+<div class="card">Corporate functions and graduations</div></div></section>
+<section id="faq"><h2>FAQ</h2>
+<details><summary>Do guests need an account?</summary><p>No. They scan, upload and view.</p></details>
+<details><summary>Is location data removed from photos?</summary><p>Yes. GPS and other metadata are stripped from every shared version.</p></details>
+<details><summary>How long are photos kept?</summary><p>Until the event expiry date you choose, then they are purged.</p></details></section>
+</div>{% endblock %}

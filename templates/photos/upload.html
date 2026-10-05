@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Share your photos | {{ event.name }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}<div class="container narrow">
+<h1>Share your photos</h1><p>{{ event.name }}</p>
+{% if closed == "ended" %}<div class="card"><h2>This event has ended</h2><p>Photo sharing is closed.</p></div>
+{% elif closed == "disabled" %}<div class="card"><h2>Uploads are turned off</h2><p>The organiser has paused photo uploads.</p></div>
+{% else %}
+<noscript><p class="banner">Please turn on JavaScript to upload photos.</p></noscript>
+<div id="uploader" data-api="/api/events/{{ event.public_code }}/" data-code="{{ event.public_code }}" data-max-mb="{{ event.max_upload_size_mb }}" data-max-photos="{{ event.max_photos_per_upload }}">
+<section id="consent" class="card" hidden><h2>Before you upload</h2>
+<p>By uploading you agree to share these photos with event guests.</p>
+<label><input type="checkbox" id="consent-check"> I agree</label>
+<p><button class="btn gold" id="consent-accept" type="button" disabled>Continue</button></p></section>
+<section id="upload-area" hidden>
+<div class="field"><label for="guest-name">Your name (optional)</label><input id="guest-name" maxlength="60" autocomplete="name"></div>
+<div id="dropzone" class="dropzone"><p>Drag photos here, or:</p>
+<input id="file-input" class="sr-only" type="file" accept="image/*,.heic,.heif" multiple>
+<input id="camera-input" class="sr-only" type="file" accept="image/*" capture="environment">
+<label class="btn gold" for="file-input">Choose photos</label>
+<label class="btn" for="camera-input">Take a photo</label>
+<p class="hint">Up to {{ event.max_photos_per_upload }} photos at a time, {{ event.max_upload_size_mb }} MB each.</p></div>
+<p><label><input type="checkbox" id="low-bw"> Low-bandwidth mode (smaller photos, one at a time)</label></p>
+<p id="low-bw-note" class="hint" hidden>We turned this on because your connection looks slow or data saver is on.</p>
+<ul id="items" class="items"></ul>
+<p id="summary" class="hint" role="status" aria-live="polite"></p></section></div>
+<script type="module" src="{% static 'js/upload/uploader.js' %}"></script>{% endif %}
+</div>{% endblock %}

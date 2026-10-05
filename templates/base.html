@@ -1,0 +1,18 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}VanPere Digital{% endblock %}</title>
+<meta name="description" content="{% block desc %}VanPere Digital: every guest photo in one place. Share a QR code, collect photos, no guest accounts.{% endblock %}">
+<meta name="theme-color" content="#1B1A2E">
+{% block og %}<meta property="og:site_name" content="VanPere Digital"><meta property="og:title" content="VanPere Digital"><meta property="og:image" content="{{ SITE_URL }}{% static 'img/og-default.png' %}"><meta name="twitter:card" content="summary_large_image">{% endblock %}
+<link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">{% block head %}{% endblock %}
+</head><body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="container"><header class="site">
+<a class="wordmark" href="/">VanPere <span>Digital</span></a>
+<nav aria-label="Main"><a href="/#how">How it works</a><a href="/#faq">FAQ</a>{% if user.is_authenticated %}<a href="{% url 'dashboard:overview' %}">Dashboard</a><a href="{% url 'events:list' %}">My events</a><a href="{% url 'accounts:home' %}">Account</a><form class="inline" method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="linklike" type="submit">Log out</button></form>{% else %}<a href="{% url 'accounts:login' %}">Sign in</a>{% endif %}</nav></header></div>
+{% if messages %}<div class="container"><ul class="messages" role="status">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul></div>{% endif %}
+<main id="main">{% block content %}{% endblock %}</main>
+<footer class="site"><div class="container"><strong>VanPere Digital</strong> &middot; Share the moment. &middot; <a href="/privacy/">Privacy</a> &middot; <a href="/terms/">Terms</a></div></footer>
+</body></html>

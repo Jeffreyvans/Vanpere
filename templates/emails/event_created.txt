@@ -1,0 +1,9 @@
+{% autoescape off %}Your event "{{ event.name }}" is live on VanPere Digital.
+
+Guest link: {{ event.public_url }}
+Photos can be shared until {{ event.expires_at|date:"j F Y, H:i" }} (Africa/Harare).
+
+Share and print your QR code: {{ manage_url }}
+
+VanPere Digital
+{% endautoescape %}

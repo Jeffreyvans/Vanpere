@@ -1,0 +1,4 @@
+{% extends "emails/base.html" %}{% block body %}
+<p>Your event <strong>{{ event.name }}</strong> expires in {{ days }} day{{ days|pluralize }}, on {{ event.expires_at|date:"j F Y, H:i" }} (Africa/Harare).</p>
+<p>After that, guests can no longer upload or view photos, and the files are deleted after a grace period. Download your photos or extend the expiry date before then.</p>
+<p><a href="{{ manage_url }}" style="background:#C9A24B;color:#1B1A2E;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold;display:inline-block">Open your dashboard</a></p>{% endblock %}

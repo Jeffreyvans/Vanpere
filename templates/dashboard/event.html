@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }} dashboard | VanPere Digital{% endblock %}
+{% block content %}<div class="container"><h1>{{ event.name }}</h1>{% include "dashboard/_nav.html" %}
+<div class="stats"><div class="card"><strong>{{ stats.photos }}</strong><span>photos</span></div>
+<div class="card"><strong>{{ stats.contributors }}</strong><span>contributors</span></div>
+<div class="card"><strong>{{ event.storage_used_bytes|filesizeformat }}</strong><span>storage used</span></div>
+<div class="card"><strong>{% if event.is_expired %}Expired{% else %}{{ event.days_remaining }}{% endif %}</strong><span>days remaining</span></div>
+<div class="card"><strong>{{ stats.pending }}</strong><span><a href="{% url 'dashboard:photos' event.pk %}?tab=pending">pending</a></span></div>
+<div class="card"><strong>{{ stats.open_reports }}</strong><span><a href="{% url 'dashboard:reports' event.pk %}">open reports</a></span></div></div>
+<div class="grid"><div class="card"><h2>Settings</h2>
+<form method="post" action="{% url 'dashboard:toggle' event.pk 'allow_uploads' %}" class="toggle">{% csrf_token %}Uploads are <strong>{{ event.allow_uploads|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.allow_uploads|yesno:"off,on" }}</button></form>
+<form method="post" action="{% url 'dashboard:toggle' event.pk 'allow_downloads' %}" class="toggle">{% csrf_token %}Guest downloads of originals are <strong>{{ event.allow_downloads|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.allow_downloads|yesno:"off,on" }}</button></form>
+<form method="post" action="{% url 'dashboard:toggle' event.pk 'moderation_enabled' %}" class="toggle">{% csrf_token %}Moderation is <strong>{{ event.moderation_enabled|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.moderation_enabled|yesno:"off,on" }}</button></form>
+<p><a href="{% url 'events:edit' event.pk %}">Edit event, expiry and viewing PIN</a> &middot; <a href="{% url 'events:detail' event.pk %}">Share and QR</a></p></div>
+<div class="card"><h2>Download</h2>
+{% if zip_large %}<p class="banner">This is a large event ({{ stats.approved }} photos). The ZIP streams originals and may take a while.</p>{% endif %}
+<p><a class="btn gold" href="{% url 'dashboard:download_zip' event.pk %}">Download approved photos (ZIP)</a></p></div>
+<div class="card"><h2>Danger zone</h2>
+<p><a href="{% url 'dashboard:regenerate' event.pk %}">Regenerate public code</a> (invalidates the old QR code)</p>
+<p><a class="err" href="{% url 'dashboard:delete' event.pk %}">Delete event</a></p></div></div></div>{% endblock %}

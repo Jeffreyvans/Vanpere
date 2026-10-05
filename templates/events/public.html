@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{{ event.name }} | VanPere Digital{% endblock %}
+{% block desc %}Share your photos from {{ event.name }}.{% endblock %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block og %}<meta property="og:type" content="website">
+<meta property="og:site_name" content="VanPere Digital">
+<meta property="og:title" content="{{ event.name }}">
+<meta property="og:description" content="Share the moment: add your photos from {{ event.name }}.">
+<meta property="og:image" content="{{ og_image }}">
+<meta property="og:url" content="{{ share_url }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ event.name }}">
+<meta name="twitter:image" content="{{ og_image }}">{% endblock %}
+{% block content %}<div class="container narrow">
+{% if event.cover_image %}<img class="cover" src="{% url 'events:cover' event.public_code %}" alt="Cover photo for {{ event.name }}">{% endif %}
+<h1>{{ event.name }}</h1>
+<p>{{ event.event_date|date:"l, j F Y" }}{% if event.location %} &middot; {{ event.location }}{% endif %}</p>
+{% if event.description %}<div>{{ event.description|linebreaks }}</div>{% endif %}
+{% if expired %}<div class="card"><h2>This event has ended</h2><p>Photo sharing for this event is now closed.</p></div>
+{% else %}
+<p><strong>{{ event.photo_count }}</strong> photo{{ event.photo_count|pluralize }} shared so far</p>
+{% if needs_pin %}<form class="card" method="post" action="{% url 'events:pin' event.public_code %}">{% csrf_token %}
+<div class="field"><label for="pin">Enter the viewing PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="off" required></div>
+<button class="btn" type="submit">Unlock gallery</button></form>{% endif %}
+{% if event.allow_uploads %}<p><a class="btn gold" href="{% url 'photos:upload' event.public_code %}">&#128248; Share Your Photos</a>
+<a class="btn" href="{% url 'photos:gallery' event.public_code %}">View Gallery</a></p>
+{% else %}<p>Uploads are currently turned off for this event.</p>{% endif %}
+<h2>Invite others</h2>{% include "events/_share.html" %}{% endif %}
+</div><script type="module" src="{% static 'js/share.js' %}"></script>{% endblock %}

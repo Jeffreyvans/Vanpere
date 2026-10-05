@@ -1,0 +1,9 @@
+{% autoescape off %}Hi{% if user.full_name %} {{ user.full_name }}{% endif %},
+
+Please verify your email to start publishing events on VanPere Digital:
+{{ verify_url }}
+
+This link expires in {{ hours }} hours.
+
+VanPere Digital
+{% endautoescape %}

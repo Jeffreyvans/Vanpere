@@ -1,0 +1,7 @@
+<nav class="dnav" aria-label="Event dashboard">
+<a href="{% url 'dashboard:overview' %}">All events</a>
+<a href="{% url 'dashboard:event' event.pk %}">Overview</a>
+<a href="{% url 'dashboard:photos' event.pk %}">Photos</a>
+<a href="{% url 'dashboard:review' event.pk %}">Quick review</a>
+<a href="{% url 'dashboard:reports' event.pk %}">Reports</a>
+<a href="{% url 'dashboard:contributors' event.pk %}">Contributors</a></nav>
