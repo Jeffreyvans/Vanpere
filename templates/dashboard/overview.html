@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard | VanPere Digital{% endblock %}
-{% block content %}<div class="container"><h1>Dashboard</h1>
+{% block content %}<div class="container"><header class="page-head"><p class="eyebrow">Organiser</p><h1>Dashboard</h1><p class="page-lead">Storage, moderation and every event you run.</p></header>
 {% if over_quota %}<p class="banner" role="alert"><strong>Storage quota exceeded.</strong> You are using {{ used|filesizeformat }} of your {{ quota|filesizeformat }} soft quota. Delete old events or photos, or contact the administrator.</p>
 {% elif near_quota %}<p class="banner" role="status">You have used {{ quota_percent }}% of your {{ quota|filesizeformat }} storage quota.</p>{% endif %}
 <div class="stats"><div class="card"><strong>{{ total_photos }}</strong><span>photos</span></div>

@@ -1,8 +1,26 @@
 {% extends "base.html" %}
 {% block title %}My events | VanPere Digital{% endblock %}
-{% block content %}<div class="container"><h1>Events</h1>
-<p><a class="btn gold" href="{% url 'events:create' %}">Create an event</a></p>
-<div class="grid">{% for e in events %}<div class="card"><h2><a href="{% url 'events:detail' e.pk %}">{{ e.name }}</a></h2>
-<p class="meta-row">{{ e.event_date|date:"j F Y" }} · code <strong>{{ e.public_code }}</strong></p>
-<p>{% if e.is_expired %}<span class="badge warn">Expired</span>{% else %}<span class="badge">{{ e.days_remaining }} day{{ e.days_remaining|pluralize }} remaining</span>{% endif %}</p></div>
-{% empty %}<p class="empty-state">No events yet.</p>{% endfor %}</div></div>{% endblock %}
+{% block content %}<div class="container">
+<header class="page-head">
+<p class="eyebrow">Organiser</p>
+<h1>Events</h1>
+<p class="page-lead">Every event you have created, its guest link and how long it has left.</p>
+</header>
+<p class="toolbar"><a class="btn gold" href="{% url 'events:create' %}"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Create an event</a></p>
+<div class="grid">
+{% for e in events %}
+<article class="card hoverable" data-reveal>
+<h2><a href="{% url 'events:detail' e.pk %}">{{ e.name }}</a></h2>
+<p class="meta-row"><span>{{ e.event_date|date:"j F Y" }}</span><span>code <strong>{{ e.public_code }}</strong></span></p>
+<p>{% if e.is_expired %}<span class="badge warn">Expired</span>{% else %}<span class="badge">{{ e.days_remaining }} day{{ e.days_remaining|pluralize }} remaining</span>{% endif %}
+{% if e.allow_uploads %}<span class="badge ok">Uploads on</span>{% else %}<span class="badge">Uploads off</span>{% endif %}</p>
+<p class="toolbar">
+<a class="btn ghost small" href="{{ e.public_path }}">Guest page</a>
+<a class="btn ghost small" href="{% url 'photos:gallery' e.public_code %}">Gallery</a>
+</p>
+</article>
+{% empty %}
+<p class="empty-state">No events yet. <strong>Create your first event</strong> and share the link with your guests.</p>
+{% endfor %}
+</div>
+</div>{% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ event.name }} dashboard | VanPere Digital{% endblock %}
-{% block content %}<div class="container"><h1>{{ event.name }}</h1>{% include "dashboard/_nav.html" %}
+{% block content %}<div class="container"><header class="page-head"><p class="eyebrow">Event dashboard</p><h1>{{ event.name }}</h1></header>{% include "dashboard/_nav.html" %}
 <div class="stats"><div class="card"><strong>{{ stats.photos }}</strong><span>photos</span></div>
 <div class="card"><strong>{{ stats.contributors }}</strong><span>contributors</span></div>
 <div class="card"><strong>{{ event.storage_used_bytes|filesizeformat }}</strong><span>storage used</span></div>

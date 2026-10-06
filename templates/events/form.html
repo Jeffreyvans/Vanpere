@@ -1,8 +1,18 @@
 {% extends "base.html" %}{% load static %}
 {% block title %}{% if event %}Edit event{% else %}Create an event{% endif %} | VanPere Digital{% endblock %}
-{% block content %}<div class="narrow"><div class="card auth-card"><h1>{% if event %}Edit event{% else %}Create an event{% endif %}</h1>
+{% block content %}<div class="narrow">
+<header class="page-head">
+<p class="eyebrow">{% if event %}Edit{% else %}New event{% endif %}</p>
+<h1>{% if event %}Edit event{% else %}Create an event{% endif %}</h1>
+<p class="page-lead">{% if event %}Update the details, expiry and sharing options for {{ event.name }}.{% else %}Set up the event, then share the link or QR code with your guests.{% endif %}</p>
+</header>
+<div class="card auth-card" data-reveal>
 <form method="post" enctype="multipart/form-data" novalidate data-default-days="{{ default_days }}">{% csrf_token %}
 {% include "partials/form_fields.html" %}
 <p id="expiry-hint" class="hint" aria-live="polite"></p>
-<button class="btn gold" type="submit">Save event</button></form></div></div>
+<div class="form-actions"><button class="btn gold" type="submit">Save event</button>
+{% if event %}<a class="btn ghost" href="{% url 'events:detail' event.pk %}">Cancel</a>{% endif %}</div>
+</form>
+</div>
+</div>
 <script type="module" src="{% static 'js/event-form.js' %}"></script>{% endblock %}

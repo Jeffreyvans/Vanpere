@@ -1,23 +1,172 @@
 {% extends "base.html" %}
+{% load static %}
+{% block bodyclass %}landing{% endblock %}
+{% block title %}VanPere Digital — every guest photo, one gallery{% endblock %}
+{% block desc %}Share a QR code, collect every guest photo in one private gallery, run a live venue slideshow. No guest accounts, GPS data stripped.{% endblock %}
 {% block content %}
+<section class="hero" id="top">
+<div class="hero-media"><img src="{% static 'img/vanpere-digital (1).jpeg' %}" alt="" width="5472" height="3648" fetchpriority="high" decoding="async"></div>
+<div class="hero-scrim" aria-hidden="true"></div>
+<div class="container hero-inner">
+<p class="eyebrow">Shared photo galleries for real events</p>
+<h1>Every guest's photos, one beautiful gallery</h1>
+<p class="hero-lede">Your organiser creates the event and shares a link or QR code. Guests upload from any phone and browse everything in one place — no app, no account, no lost shots.</p>
+<div class="hero-actions">
+{% if user.is_staff %}<a class="btn gold" href="{% url 'events:create' %}">Create an Event</a>
+{% elif user.is_authenticated %}<a class="btn gold" href="{% url 'accounts:home' %}">Your account</a>
+{% else %}<a class="btn gold" href="{% url 'accounts:login' %}">Administrator sign in</a>{% endif %}
+<a class="btn ghost" href="#how">See how it works</a>
+</div>
+<ul class="hero-facts">
+<li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg>Scan a QR, you're in</li>
+<li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.4-3 8.2-7 10-4-1.8-7-5.6-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>GPS data stripped</li>
+<li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H4z"/><path d="M8 20h8M12 16v4"/></svg>Live venue slideshow</li>
+</ul>
+</div>
+<a class="scroll-cue" href="#how">How it works<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></a>
+</section>
+
+<section class="section manifesto">
+<div class="container manifesto-grid">
+<div data-reveal="left">
+<p class="eyebrow">Why VanPere</p>
+<p class="manifesto-quote">The best frames are the ones nobody staged — <em>the ones your guests caught.</em></p>
+<p class="lede">A wedding, a funeral, a graduation: every person in the room is holding a camera, and the photographs end up scattered across a dozen phones. VanPere Digital pulls them back into one quiet, well-kept gallery while the day is still happening.</p>
+<p class="lede">Share the QR code on a table card, in a message, on the order of service. Guests scan, choose their best shots, and watch the gallery fill up.</p>
+</div>
+<figure class="media" data-reveal="right"><img src="{% static 'img/vanpere-digital (2).jpeg' %}" alt="Guests together at an event, photographed for a shared gallery" width="1000" height="667" loading="lazy" decoding="async"></figure>
+</div>
+</section>
+
+<section class="section" id="how">
+<div class="container steps-layout">
+<figure class="media steps-visual" data-reveal="left"><img src="{% static 'img/vanpere-digital (4).jpeg' %}" alt="A guest capturing a candid moment at an event" width="493" height="740" loading="lazy" decoding="async"></figure>
+<div>
+<div class="section-head">
+<p class="eyebrow">How VanPere works</p>
+<h2>From the organiser's phone to the projector in four steps</h2>
+<p>No downloads for guests, no logins to explain, nothing for the venue to install.</p>
+</div>
+<ol class="steps">
+<li class="step" data-reveal><span class="step-n">1</span><h3>Create the event</h3><p>The organiser sets up the wedding, birthday, funeral, church or corporate event — name, dates, cover photo, optional PIN.</p><span class="step-tag">Organiser · one minute</span></li>
+<li class="step d1" data-reveal><span class="step-n">2</span><h3>Share the link or QR</h3><p>A single code goes on the table cards, in the WhatsApp group or on the invitation. Tapping it opens the gallery straight away.</p><span class="step-tag">One scan</span></li>
+<li class="step d2" data-reveal><span class="step-n">3</span><h3>Guests upload</h3><p>Photos are resized in the browser, queued offline and synced when the signal returns. Every upload strips location metadata.</p><span class="step-tag">Any phone, any signal</span></li>
+<li class="step d3" data-reveal><span class="step-n">4</span><h3>Watch it back</h3><p>The gallery fills live, a slideshow runs on the venue screen, and everything stays downloadable until the event expires.</p><span class="step-tag">Yours to keep</span></li>
+</ol>
+</div>
+</div>
+</section>
+
+<section class="section occasions">
 <div class="container">
-<section class="hero">
-<h1>Every guest's photos, in one place</h1>
-<p>The administrator creates your event and sends you a link or QR code. Guests upload and view photos with no app and no account.</p>
-<p class="hero-actions">{% if user.is_staff %}<a class="btn gold" href="{% url 'events:create' %}">Create an event</a>{% elif user.is_authenticated %}<a class="btn gold" href="{% url 'accounts:home' %}">Your account</a>{% else %}<a class="btn ghost" href="{% url 'accounts:login' %}">Administrator sign in</a>{% endif %}</p>
+<div class="section-head center">
+<p class="eyebrow">Built for real events</p>
+<h2>Every room where people take photographs</h2>
+</div>
+<div class="occ-band" data-reveal="zoom">
+<figure class="media"><img src="{% static 'img/vanpere-digital (5).jpeg' %}" alt="A celebration photographed by guests" width="1000" height="667" loading="lazy" decoding="async"></figure>
+<figure class="media"><img src="{% static 'img/vanpere-digital (3).jpeg' %}" alt="Guests sharing a moment worth keeping" width="740" height="493" loading="lazy" decoding="async"></figure>
+<p class="band-note"><span>Two hundred phones, one gallery — set up before the guests arrive.</span><span class="kicker">Weddings · Memorials · Milestones</span></p>
+</div>
+<div class="occ-grid">
+<article class="occ is-wide" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/><path d="M12 12h.01"/></svg><h3>Weddings &amp; receptions</h3><p>The photographer cannot be everywhere. Uncle Keith's candid table shots belong in the same album as the first dance.</p></article>
+<article class="occ d1" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M6 4v4a3 3 0 0 0 3 3M18 4v4a3 3 0 0 1-3 3"/><path d="M6 20h12"/></svg><h3>Birthdays &amp; anniversaries</h3><p>Every guest's angle of the cake, the speeches and the dance floor.</p></article>
+<article class="occ d2" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.4-3 8.2-7 10-4-1.8-7-5.6-7-10V6z"/></svg><h3>Funerals &amp; memorials</h3><p>A gentle, private place for family photographs, kept until you decide otherwise.</p></article>
+<article class="occ d3" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10l8-5 8 5-8 5z"/><path d="M7 12.5V17c0 1.1 2.2 2.5 5 2.5s5-1.4 5-2.5v-4.5"/></svg><h3>Church gatherings</h3><p>Services, baptisms and fundraisers shared with the whole congregation.</p></article>
+<article class="occ d4" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg><h3>Corporate functions</h3><p>Launches, awards nights and team days, ready for the company newsletter.</p></article>
+<article class="occ d5" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5"/></svg><h3>Graduations &amp; schools</h3><p>One gallery for every proud parent in the hall.</p></article>
+<article class="occ d6" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><h3>Clubs, sports &amp; reunions</h3><p>Tournaments, reunions and socials, collected before everyone scatters.</p></article>
+</div>
+</div>
 </section>
-<section class="section" id="how"><h2>How it works</h2><div class="grid">
-<div class="card step"><span class="step-n">1</span><h3>Create</h3><p>The administrator sets up your wedding, birthday, funeral, church or corporate event.</p></div>
-<div class="card step"><span class="step-n">2</span><h3>Scan</h3><p>Guests scan your QR code or tap the WhatsApp link.</p></div>
-<div class="card step"><span class="step-n">3</span><h3>Share</h3><p>Every photo lands in one gallery, with a live slideshow for the venue.</p></div></div></section>
-<section class="section"><h2>Built for real events</h2><div class="grid">
-<div class="card occasion">Weddings and birthdays</div>
-<div class="card occasion">Funerals and church events</div>
-<div class="card occasion">Corporate functions and graduations</div></div></section>
-<section class="section" id="faq"><h2>FAQ</h2>
-<details><summary>Do guests need an account?</summary><p>No. They scan, upload and view.</p></details>
-<details><summary>Can I create my own organiser account?</summary><p>No. VanPere Digital is administered by the operator. Ask them to create an event and send you the guest link.</p></details>
-<details><summary>Is location data removed from photos?</summary><p>Yes. GPS and other metadata are stripped from every shared version.</p></details>
-<details><summary>How long are photos kept?</summary><p>Until the event expiry date you choose, then they are purged.</p></details>
+
+<section class="section" id="gallery">
+<div class="container">
+<div class="section-head">
+<p class="eyebrow">The gallery</p>
+<h2>Photography first, chrome second</h2>
+<p>Full-bleed thumbnails, lazy loading, a keyboard-friendly viewer and a slideshow built for a projector.</p>
+</div>
+<div class="mosaic" data-reveal="zoom">
+<figure class="media m1 zoom"><img src="{% static 'img/vanpere-digital (1).jpeg' %}" alt="Event photograph held in a VanPere gallery" width="5472" height="3648" loading="lazy" decoding="async"><span class="veil" aria-hidden="true"></span><figcaption>Every upload, one timeline</figcaption></figure>
+<figure class="media m2 zoom"><img src="{% static 'img/vanpere-digital (4).jpeg' %}" alt="Portrait-oriented photograph shared by a guest" width="493" height="740" loading="lazy" decoding="async"><span class="veil" aria-hidden="true"></span><figcaption>Portraits keep their shape</figcaption></figure>
+<figure class="media m3 zoom"><img src="{% static 'img/vanpere-digital (2).jpeg' %}" alt="Guest photograph from a shared event gallery" width="1000" height="667" loading="lazy" decoding="async"><span class="veil" aria-hidden="true"></span><figcaption>Tap to open the viewer</figcaption></figure>
+<figure class="media m4 zoom"><img src="{% static 'img/vanpere-digital (3).jpeg' %}" alt="Candid moment captured by a guest" width="740" height="493" loading="lazy" decoding="async"><span class="veil" aria-hidden="true"></span><figcaption>Candid, unposed, kept</figcaption></figure>
+<figure class="media m5 zoom"><img src="{% static 'img/vanpere-digital (5).jpeg' %}" alt="Celebration photograph in a shared gallery" width="1000" height="667" loading="lazy" decoding="async"><span class="veil" aria-hidden="true"></span><figcaption>Download before expiry</figcaption></figure>
+</div>
+<div class="gallery-note">
+<p class="hint">Pin-locked events keep guests inside the right room. Report a photo and the organiser reviews it.</p>
+<a class="btn ghost small" href="#faq">Questions, answered</a>
+</div>
+</div>
 </section>
-</div>{% endblock %}
+
+<section class="section">
+<div class="container">
+<div class="section-head center">
+<p class="eyebrow">Why it feels different</p>
+<h2>Quiet software for loud rooms</h2>
+</div>
+<div class="value-grid">
+<article class="value" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg><h3>No app, no account</h3><p>Guests tap a link and start uploading. Nothing to install, nothing to remember.</p></article>
+<article class="value d1" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg><h3>Photographs, not thumbnails</h3><p>Edge-to-edge layout, honest colours and a viewer that respects the frame.</p></article>
+<article class="value d2" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.4-3 8.2-7 10-4-1.8-7-5.6-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><h3>Private by default</h3><p>Unlisted links, optional PIN, location metadata removed from every shared copy.</p></article>
+<article class="value d3" data-reveal><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg><h3>Ready in minutes</h3><p>Uploads compress in the browser, queue offline and sync the moment the signal returns.</p></article>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="container trust-panel" data-reveal>
+<div>
+<p class="eyebrow">Privacy &amp; control</p>
+<h2>Guests trust you with their photographs. Keep that trust.</h2>
+<p class="lede">Every gallery is unlisted, every upload is moderated by the organiser, and nothing outlives the event. When the expiry date arrives, the photographs are purged.</p>
+<a class="btn ghost small" href="/privacy/">Read the privacy notes</a>
+</div>
+<ul class="trust-list">
+<li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><div><h3>Location data removed</h3><p>GPS coordinates and identifying metadata are stripped from every shared version.</p></div></li>
+<li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><div><h3>Optional guest PIN</h3><p>Lock the gallery so only people at the event can open it.</p></div></li>
+<li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><div><h3>Expiry &amp; purge</h3><p>Choose when the event closes; photographs are removed after the expiry date.</p></div></li>
+<li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><div><h3>Organiser moderation</h3><p>Report a photo and the organiser approves, hides or downloads the set.</p></div></li>
+</ul>
+</div>
+</section>
+
+<section class="section" id="faq">
+<div class="container narrow">
+<div class="section-head center">
+<p class="eyebrow">FAQ</p>
+<h2>Questions, answered</h2>
+</div>
+<details data-reveal><summary>Do guests need an account?</summary><p>No. They scan the code or tap the link, upload their photographs and browse the gallery. There is nothing to register and no app to install.</p></details>
+<details class="d1" data-reveal><summary>Can I create my own organiser account?</summary><p>VanPere Digital is administered by the operator. Ask them to create an event and send you the guest link.</p></details>
+<details class="d2" data-reveal><summary>Is location data removed from photos?</summary><p>Yes. GPS coordinates and other identifying metadata are stripped from every shared version of an upload.</p></details>
+<details class="d3" data-reveal><summary>How long are photos kept?</summary><p>Until the event expiry date you choose, then they are purged from storage. Download everything before then.</p></details>
+<details class="d4" data-reveal><summary>What happens with a bad connection?</summary><p>Uploads are compressed in the browser and queued on the device. The queue syncs automatically as soon as the signal comes back.</p></details>
+</div>
+</section>
+
+<section class="section">
+<div class="container cta-band" data-reveal>
+<div class="cta-inner">
+<div>
+<p class="eyebrow">Start here</p>
+<h2>Gather every photograph before they scatter</h2>
+<p>Create the event, print one QR code, and let the room do the shooting. The gallery is live before the first toast.</p>
+<div class="cta-actions">
+{% if user.is_staff %}<a class="btn gold" href="{% url 'events:create' %}">Create an Event</a>
+{% elif user.is_authenticated %}<a class="btn gold" href="{% url 'accounts:home' %}">Your account</a>
+{% else %}<a class="btn gold" href="{% url 'accounts:login' %}">Administrator sign in</a>{% endif %}
+<a class="btn btn-outline-light" href="#how">See how it works</a>
+</div>
+</div>
+<div class="cta-photos">
+<figure class="media"><img src="{% static 'img/vanpere-digital (4).jpeg' %}" alt="" width="493" height="740" loading="lazy" decoding="async"></figure>
+<figure class="media"><img src="{% static 'img/vanpere-digital (3).jpeg' %}" alt="" width="740" height="493" loading="lazy" decoding="async"></figure>
+<figure class="media"><img src="{% static 'img/vanpere-digital (5).jpeg' %}" alt="" width="1000" height="667" loading="lazy" decoding="async"></figure>
+</div>
+</div>
+</div>
+</section>
+{% endblock %}

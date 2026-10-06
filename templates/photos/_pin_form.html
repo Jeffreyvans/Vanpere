@@ -1,4 +1,8 @@
-<form class="card" method="post" action="{% url 'events:pin' event.public_code %}">{% csrf_token %}
+<form class="card auth-card" method="post" action="{% url 'events:pin' event.public_code %}">{% csrf_token %}
 <input type="hidden" name="next" value="{{ next }}">
-<div class="field"><label for="pin">Enter the viewing PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="off" required></div>
-<button class="btn gold" type="submit">Unlock</button></form>
+<p class="eyebrow">Protected gallery</p>
+<h2>Enter the viewing PIN</h2>
+<p class="hint">The organiser set a PIN for this event. It is printed on your table card or invitation.</p>
+<div class="field"><label class="sr-only" for="pin">Enter the viewing PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" required></div>
+<div class="form-actions"><button class="btn gold" type="submit">Unlock</button></div>
+</form>

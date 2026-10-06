@@ -11,11 +11,18 @@
 <meta name="twitter:image" content="{{ og_image }}">{% endif %}{% endblock %}
 {% block content %}<div class="narrow">
 {% if expired %}<div class="card auth-card"><h1>This event has ended</h1><p>This photo is no longer available.</p></div>
-{% elif needs_pin %}<h1>{{ event.name }}</h1>{% include "photos/_pin_form.html" %}
-{% else %}<h1>{{ event.name }}</h1>
-<img class="reviewimg" src="{{ image_url }}" alt="Photo shared at {{ event.name }}">
-<p class="guest-cta"><a class="btn" href="{% url 'photos:photo_download' event.public_code photo.id %}">Download{% if not event.allow_downloads %} (medium quality){% endif %}</a>
-<a class="btn gold" href="{% url 'photos:gallery' event.public_code %}">View the whole gallery</a></p>
-<h2>Share this photo</h2>{% include "events/_share.html" %}
+{% elif needs_pin %}<header class="page-head"><p class="eyebrow">Protected gallery</p><h1>{{ event.name }}</h1></header>{% include "photos/_pin_form.html" %}
+{% else %}
+<header class="page-head">
+<p class="eyebrow">Shared photo</p>
+<h1>{{ event.name }}</h1>
+<p class="page-lead">One frame from the shared gallery — download it, or open the whole set.</p>
+</header>
+<figure class="reviewimg" data-reveal="fade"><img src="{{ image_url }}" alt="Photo shared at {{ event.name }}"></figure>
+<div class="guest-cta">
+<a class="btn" href="{% url 'photos:photo_download' event.public_code photo.id %}">Download{% if not event.allow_downloads %} (medium quality){% endif %}</a>
+<a class="btn gold" href="{% url 'photos:gallery' event.public_code %}">View the whole gallery</a>
+</div>
+<section class="section compact" aria-labelledby="share-photo"><div class="section-head"><h2 id="share-photo">Share this photo</h2></div>{% include "events/_share.html" %}</section>
 <script type="module" src="{% static 'js/share.js' %}"></script>{% endif %}
 </div>{% endblock %}

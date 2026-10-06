@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% load static %}
 {% block title %}Photos | {{ event.name }}{% endblock %}
-{% block content %}<div class="container"><h1>{{ event.name }}</h1>{% include "dashboard/_nav.html" %}
+{% block content %}<div class="container"><header class="page-head"><p class="eyebrow">Moderation</p><h1>{{ event.name }}</h1></header>{% include "dashboard/_nav.html" %}
 <div class="tabs" role="tablist">{% for t, n in counts.items %}<a href="?tab={{ t }}" class="{% if t == tab %}on{% endif %}" aria-current="{% if t == tab %}page{% else %}false{% endif %}">{{ t|capfirst }} ({{ n }})</a>{% endfor %}</div>
 <form method="get" class="filters"><input type="hidden" name="tab" value="{{ tab }}">
 <label>Contributor <input name="q" value="{{ q }}" placeholder="Name contains"></label>

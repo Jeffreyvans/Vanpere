@@ -1,7 +1,9 @@
+{% with cur=request.resolver_match.url_name %}
 <nav class="dnav" aria-label="Event dashboard">
-<a href="{% url 'dashboard:overview' %}">All events</a>
-<a href="{% url 'dashboard:event' event.pk %}">Overview</a>
-<a href="{% url 'dashboard:photos' event.pk %}">Photos</a>
-<a href="{% url 'dashboard:review' event.pk %}">Quick review</a>
-<a href="{% url 'dashboard:reports' event.pk %}">Reports</a>
-<a href="{% url 'dashboard:contributors' event.pk %}">Contributors</a></nav>
+<a href="{% url 'dashboard:overview' %}"{% if cur == "overview" %} class="on" aria-current="page"{% endif %}>All events</a>
+<a href="{% url 'dashboard:event' event.pk %}"{% if cur == "event" %} class="on" aria-current="page"{% endif %}>Overview</a>
+<a href="{% url 'dashboard:photos' event.pk %}"{% if cur == "photos" %} class="on" aria-current="page"{% endif %}>Photos</a>
+<a href="{% url 'dashboard:review' event.pk %}"{% if cur == "review" %} class="on" aria-current="page"{% endif %}>Quick review</a>
+<a href="{% url 'dashboard:reports' event.pk %}"{% if cur == "reports" %} class="on" aria-current="page"{% endif %}>Reports</a>
+<a href="{% url 'dashboard:contributors' event.pk %}"{% if cur == "contributors" %} class="on" aria-current="page"{% endif %}>Contributors</a></nav>
+{% endwith %}

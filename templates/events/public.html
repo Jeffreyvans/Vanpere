@@ -12,18 +12,40 @@
 <meta name="twitter:title" content="{{ event.name }}">
 <meta name="twitter:image" content="{{ og_image }}">{% endblock %}
 {% block content %}<div class="narrow">
-{% if event.cover_image %}<p class="event-hero"><img class="cover" src="{% url 'events:cover' event.public_code %}" alt="Cover photo for {{ event.name }}"></p>{% endif %}
+{% if event.cover_image %}
+<figure class="event-hero" data-reveal="fade">
+<img class="cover" src="{% url 'events:cover' event.public_code %}" alt="Cover photo for {{ event.name }}">
+<figcaption class="hero-copy">
+<p class="eyebrow">Guest gallery</p>
 <h1>{{ event.name }}</h1>
-<p class="meta-row">{{ event.event_date|date:"l, j F Y" }}{% if event.location %} · {{ event.location }}{% endif %}</p>
-{% if event.description %}<div class="page-lead">{{ event.description|linebreaks }}</div>{% endif %}
-{% if expired %}<div class="card"><h2>This event has ended</h2><p>Photo sharing for this event is now closed.</p></div>
+<p class="meta-row"><span>{{ event.event_date|date:"l, j F Y" }}</span>{% if event.location %}<span>{{ event.location }}</span>{% endif %}</p>
+<p class="hero-stats"><span><strong>{{ event.photo_count }}</strong> photo{{ event.photo_count|pluralize }} shared</span></p>
+</figcaption>
+</figure>
 {% else %}
-<p><strong>{{ event.photo_count }}</strong> photo{{ event.photo_count|pluralize }} shared so far</p>
-{% if needs_pin %}<form class="card" method="post" action="{% url 'events:pin' event.public_code %}">{% csrf_token %}
+<header class="event-header"><div class="headline">
+<p class="eyebrow">Guest gallery</p>
+<h1>{{ event.name }}</h1>
+<p class="meta-row"><span>{{ event.event_date|date:"l, j F Y" }}</span>{% if event.location %}<span>{{ event.location }}</span>{% endif %}</p>
+</div></header>
+{% endif %}
+{% if event.description %}<div class="page-lead">{{ event.description|linebreaks }}</div>{% endif %}
+{% if expired %}
+<section class="card" data-reveal><h2>This event has ended</h2><p>Photo sharing for this event is now closed. Thank you to everyone who took part.</p></section>
+{% else %}
+<p class="event-count"><strong>{{ event.photo_count }}</strong> photo{{ event.photo_count|pluralize }} shared so far</p>
+{% if needs_pin %}
+<form class="card" method="post" action="{% url 'events:pin' event.public_code %}">{% csrf_token %}
 <div class="field"><label for="pin">Enter the viewing PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="off" required></div>
-<button class="btn" type="submit">Unlock gallery</button></form>{% endif %}
-{% if event.allow_uploads %}<p class="guest-cta"><a class="btn gold" href="{% url 'photos:upload' event.public_code %}">&#128248; Share Your Photos</a>
-<a class="btn" href="{% url 'photos:gallery' event.public_code %}">View Gallery</a></p>
-{% else %}<p>Uploads are currently turned off for this event.</p>{% endif %}
-<h2>Invite others</h2>{% include "events/_share.html" %}{% endif %}
+<button class="btn" type="submit">Unlock gallery</button></form>
+{% endif %}
+{% if event.allow_uploads %}
+<div class="guest-cta">
+<a class="btn gold" href="{% url 'photos:upload' event.public_code %}"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>Share Your Photos</a>
+<a class="btn" href="{% url 'photos:gallery' event.public_code %}">View Gallery</a>
+</div>
+{% else %}<p class="hint">Uploads are currently turned off for this event — you can still browse the gallery.</p>{% endif %}
+<section class="section compact" aria-labelledby="invite"><div class="section-head"><h2 id="invite">Invite others</h2><p>Send the link to anyone who should add their photographs.</p></div>
+{% include "events/_share.html" %}</section>
+{% endif %}
 </div><script type="module" src="{% static 'js/share.js' %}"></script>{% endblock %}

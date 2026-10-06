@@ -1,19 +1,42 @@
 {% extends "base.html" %}{% load static %}
 {% block title %}{{ event.name }} | VanPere Digital{% endblock %}
-{% block content %}<div class="container"><h1>{{ event.name }}</h1>
-<p class="meta-row">{{ event.get_event_type_display }} · {{ event.event_date|date:"l, j F Y" }}{% if event.location %} · {{ event.location }}{% endif %}</p>
+{% block content %}<div class="container">
+<header class="event-header">
+<div class="headline">
+<p class="eyebrow">Event</p>
+<h1>{{ event.name }}</h1>
+<p class="meta-row"><span>{{ event.get_event_type_display }}</span><span>{{ event.event_date|date:"l, j F Y" }}</span>{% if event.location %}<span>{{ event.location }}</span>{% endif %}</p>
 <p class="page-lead">{% if event.is_expired %}<strong>Expired.</strong>{% else %}{{ event.days_remaining }} day{{ event.days_remaining|pluralize }} remaining.{% endif %}
 Photos can be shared until {{ event.expires_at|date:"j F Y, H:i" }} (Africa/Harare).</p>
-<div class="grid"><div class="card"><h2>Guest link</h2>
+</div>
+<div class="section-actions">
+<a class="btn ghost" href="{{ event.public_path }}">Open the guest page</a>
+<a class="btn ghost" href="{% url 'events:edit' event.pk %}">Edit event</a>
+<a class="btn" href="{% url 'dashboard:event' event.pk %}">Dashboard</a>
+</div>
+</header>
+<div class="detail-grid">
+<div class="card" data-reveal>
+<h2>Guest link</h2>
 <p><input class="linkbox" readonly value="{{ share_url }}" aria-label="Guest link"></p>
 {% include "events/_share.html" %}
-<p class="toolbar"><a class="btn ghost" href="{{ event.public_path }}">Open the guest page</a>
-<a class="btn ghost" href="{% url 'events:edit' event.pk %}">Edit event</a>
-<a class="btn ghost" href="{% url 'dashboard:event' event.pk %}">Dashboard</a>
-<a class="btn ghost" href="{% url 'photos:gallery' event.public_code %}">Gallery</a>
-<a class="btn ghost" href="{% url 'photos:slideshow' event.public_code %}" target="_blank" rel="noopener">Live slideshow</a></p></div>
-<div class="card"><h2>QR code</h2>
+<div class="toolbar">
+<a class="btn ghost small" href="{% url 'photos:gallery' event.public_code %}">Gallery</a>
+<a class="btn ghost small" href="{% url 'photos:upload' event.public_code %}">Upload page</a>
+<a class="btn ghost small" href="{% url 'photos:slideshow' event.public_code %}" target="_blank" rel="noopener">Live slideshow</a>
+</div>
+</div>
+<div class="card d2" data-reveal>
+<h2>QR code</h2>
 <div class="qr-frame"><img src="{% url 'events:qr_png' event.pk %}" alt="QR code for {{ event.name }}" width="240" height="240"></div>
-<p><a href="{% url 'events:qr_png' event.pk %}" download>PNG</a> · <a href="{% url 'events:qr_svg' event.pk %}" download>SVG</a></p>
-<h3>Print posters</h3><p><a href="{% url 'events:poster' event.pk 'a4' %}">A4</a> · <a href="{% url 'events:poster' event.pk 'a5' %}">A5</a> · <a href="{% url 'events:poster' event.pk 'table' %}">Table card</a></p></div></div></div>
+<ul class="link-list">
+<li><a href="{% url 'events:qr_png' event.pk %}" download>Download the QR code (PNG)<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 11.5L12 16l4.5-4.5M5 19h14"/></svg></a></li>
+<li><a href="{% url 'events:qr_svg' event.pk %}" download>Vector QR code (SVG)<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 11.5L12 16l4.5-4.5M5 19h14"/></svg></a></li>
+<li><a href="{% url 'events:poster' event.pk 'a4' %}">Print an A4 poster<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 15h10v5H7z"/><path d="M5 9h14v6H5z"/></svg></a></li>
+<li><a href="{% url 'events:poster' event.pk 'a5' %}">Print an A5 poster<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 15h10v5H7z"/><path d="M5 9h14v6H5z"/></svg></a></li>
+<li><a href="{% url 'events:poster' event.pk 'table' %}">Print a table card<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 15h10v5H7z"/><path d="M5 9h14v6H5z"/></svg></a></li>
+</ul>
+</div>
+</div>
+</div>
 <script type="module" src="{% static 'js/share.js' %}"></script>{% endblock %}

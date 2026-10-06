@@ -2,8 +2,14 @@
 {% block title %}Gallery | {{ event.name }}{% endblock %}
 {% block head %}<meta name="robots" content="noindex">{% endblock %}
 {% block content %}<div class="container">
+<header class="gallery-head">
+<div>
+<p class="eyebrow">Shared gallery</p>
 <h1>{{ event.name }}</h1>
-<p class="toolbar"><a class="btn ghost" href="{{ event.public_path }}">Back to event</a> <a class="btn gold" href="{% url 'photos:upload' event.public_code %}">Share your photos</a></p>
+<p class="meta-row"><span>{{ event.event_date|date:"j F Y" }}</span>{% if event.location %}<span>{{ event.location }}</span>{% endif %}</p>
+</div>
+<div class="section-actions"><a class="btn ghost" href="{{ event.public_path }}">Back to event</a> <a class="btn gold" href="{% url 'photos:upload' event.public_code %}">Share your photos</a></div>
+</header>
 {% if expired %}<div class="card"><h2>This event has ended</h2><p>The gallery is no longer available.</p></div>
 {% elif needs_pin %}{% include "photos/_pin_form.html" %}
 {% else %}

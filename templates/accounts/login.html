@@ -1,7 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Sign in | VanPere Digital{% endblock %}
-{% block content %}<div class="narrow"><div class="card auth-card"><h1>Sign in</h1>
+{% block content %}<div class="narrow">
+<header class="page-head">
+<p class="eyebrow">Administrator</p>
+<h1>Sign in</h1>
+</header>
+<div class="card auth-card" data-reveal>
 <p class="lede">Administrator access only. Guests use the event link they were given.</p>
 <form method="post" novalidate>{% csrf_token %}{% include "partials/form_fields.html" %}
-<button class="btn gold" type="submit">Sign in</button></form>
-<p><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a></p></div></div>{% endblock %}
+<div class="form-actions"><button class="btn gold" type="submit">Sign in</button></div></form>
+<p><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a></p>
+</div>
+</div>{% endblock %}

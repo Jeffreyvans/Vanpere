@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% load static %}
 {% block title %}Quick review | {{ event.name }}{% endblock %}
-{% block content %}<div class="narrow"><h1>{{ event.name }}</h1>{% include "dashboard/_nav.html" %}
+{% block content %}<div class="narrow"><header class="page-head"><p class="eyebrow">Quick review</p><h1>{{ event.name }}</h1></header>{% include "dashboard/_nav.html" %}
 {% if photo %}<p role="status">{{ total }} photo{{ total|pluralize }} waiting. Keys: <kbd>A</kbd> approve, <kbd>R</kbd> reject, <kbd>S</kbd> skip.</p>
 <img class="reviewimg" src="{{ photo.medium_url }}" alt="Photo to review by {{ photo.uploader_name|default:'Anonymous' }}">
 <p>{{ photo.uploader_name|default:"Anonymous" }} · uploaded {{ photo.created_at|date:"j M Y, H:i" }}</p>
