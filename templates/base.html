@@ -7,12 +7,15 @@
 {% block og %}<meta property="og:site_name" content="VanPere Digital"><meta property="og:title" content="VanPere Digital"><meta property="og:image" content="{{ SITE_URL }}{% static 'img/og-default.png' %}"><meta name="twitter:card" content="summary_large_image">{% endblock %}
 <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
 <link rel="stylesheet" href="{% static 'css/main.css' %}">{% block head %}{% endblock %}
-</head><body>
+</head><body class="{% block bodyclass %}{% endblock %}">
 <a class="skip" href="#main">Skip to content</a>
-<div class="container"><header class="site">
+<header class="site"><div class="container header-bar">
 <a class="wordmark" href="/">VanPere <span>Digital</span></a>
-<nav aria-label="Main"><a href="/#how">How it works</a><a href="/#faq">FAQ</a>{% if user.is_authenticated %}<a href="{% url 'dashboard:overview' %}">Dashboard</a><a href="{% url 'events:list' %}">My events</a><a href="{% url 'accounts:home' %}">Account</a><form class="inline" method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="linklike" type="submit">Log out</button></form>{% else %}<a href="{% url 'accounts:login' %}">Sign in</a>{% endif %}</nav></header></div>
-{% if messages %}<div class="container"><ul class="messages" role="status">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul></div>{% endif %}
+<input type="checkbox" id="nav-open" class="sr-only">
+<label class="nav-toggle" for="nav-open">Menu</label>
+<nav aria-label="Main"><a href="/#how">How it works</a><a href="/#faq">FAQ</a>{% if user.is_authenticated %}{% if user.is_staff %}<a href="{% url 'dashboard:overview' %}">Dashboard</a><a href="{% url 'events:list' %}">Events</a>{% endif %}<a href="{% url 'accounts:home' %}">Account</a><form class="inline" method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="linklike" type="submit">Log out</button></form>{% else %}<a href="{% url 'accounts:login' %}">Sign in</a>{% endif %}</nav>
+</div></header>
+{% if messages %}<div class="container"><ul class="messages" role="status">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul></div>{% endif %}
 <main id="main">{% block content %}{% endblock %}</main>
-<footer class="site"><div class="container"><strong>VanPere Digital</strong> &middot; Share the moment. &middot; <a href="/privacy/">Privacy</a> &middot; <a href="/terms/">Terms</a></div></footer>
+<footer class="site"><div class="container foot-inner"><span><strong>VanPere Digital</strong> · Share the moment.</span><span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></span></div></footer>
 </body></html>

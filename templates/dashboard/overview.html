@@ -9,7 +9,7 @@
 <div class="card"><strong>{{ total_reports }}</strong><span>photos with open reports</span></div></div>
 <h2>Your events</h2>
 <div class="grid">{% for e in events %}<div class="card"><h3><a href="{% url 'dashboard:event' e.pk %}">{{ e.name }}</a></h3>
-<p>{{ e.n_photos }} photo{{ e.n_photos|pluralize }} &middot; {{ e.n_contributors }} contributor{{ e.n_contributors|pluralize }} &middot; {{ e.storage_used_bytes|filesizeformat }}</p>
-<p>{% if e.is_expired %}Expired{% else %}{{ e.days_remaining }} day{{ e.days_remaining|pluralize }} remaining{% endif %}
-{% if e.n_pending %} &middot; <strong>{{ e.n_pending }} pending</strong>{% endif %}{% if e.n_reports %} &middot; <strong>{{ e.n_reports }} reported</strong>{% endif %}</p></div>
-{% empty %}<p>No events yet. <a href="{% url 'events:create' %}">Create one</a>.</p>{% endfor %}</div></div>{% endblock %}
+<p>{{ e.n_photos }} photo{{ e.n_photos|pluralize }} · {{ e.n_contributors }} contributor{{ e.n_contributors|pluralize }} · {{ e.storage_used_bytes|filesizeformat }}</p>
+<p>{% if e.is_expired %}<span class="badge warn">Expired</span>{% else %}<span class="badge">{{ e.days_remaining }} day{{ e.days_remaining|pluralize }} remaining</span>{% endif %}
+{% if e.n_pending %} · <strong>{{ e.n_pending }} pending</strong>{% endif %}{% if e.n_reports %} · <strong>{{ e.n_reports }} reported</strong>{% endif %}</p></div>
+{% empty %}<p class="empty-state">No events yet. <a href="{% url 'events:create' %}">Create one</a>.</p>{% endfor %}</div></div>{% endblock %}

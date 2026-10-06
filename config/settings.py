@@ -137,6 +137,8 @@ CACHES = {"default": {
 LOGIN_REDIRECT_URL = "accounts:home"
 LOGOUT_REDIRECT_URL = "landing"
 EMAIL_VERIFY_MAX_AGE = 3 * 24 * 3600  # seconds
+ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL") or "").strip()
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD") or ""
 
 # Stage 4: uploads
 UPLOAD_RATE_PER_DEVICE = int(os.getenv("UPLOAD_RATE_PER_DEVICE", "120"))  # per hour

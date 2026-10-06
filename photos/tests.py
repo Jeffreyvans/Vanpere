@@ -53,7 +53,8 @@ class MediaMixin:
         o = override_settings(MEDIA_ROOT=tmp.name, STORAGE_BACKEND="local")
         o.enable()
         self.addCleanup(o.disable)
-        self.owner = User.objects.create_user("o@example.com", "S0meLongPass!9", email_verified=True)
+        self.owner = User.objects.create_user(
+            "o@example.com", "S0meLongPass!9", email_verified=True, is_staff=True, is_superuser=True)
         d = timeutils.local_today() + timedelta(days=5)
         self.event = Event.objects.create(
             owner=self.owner, name="Test", event_date=d, expires_at=timeutils.default_expires_at(d))
@@ -236,3 +237,41 @@ class ApiTests(MediaMixin, TestCase):
     def test_upload_page_renders(self):
         r = self.client.get(reverse("photos:upload", args=[self.event.public_code]))
         self.assertContains(r, 'data-max-mb="15"')
+
+
+class GuestNoAccountTests(MediaMixin, TestCase):
+    """Guests upload and view with no account: no login, no session user, no extra users created."""
+
+    def setUp(self):
+        super().setUp()
+        self.code = self.event.public_code
+
+    def _post(self, name, data=None, token=TOKEN, **kw):
+        url = reverse(f"photos:{name}", kwargs={"code": self.code, **kw})
+        return self.client.post(url, data or {}, content_type="application/json", HTTP_X_DEVICE_TOKEN=token)
+
+    def test_guests_view_upload_and_gallery_without_an_account(self):
+        for name, args in (("upload", [self.code]), ("gallery", [self.code]), ("slideshow", [self.code])):
+            r = self.client.get(reverse(f"photos:{name}", args=args))
+            self.assertEqual(r.status_code, 200, name)
+            self.assertNotContains(r, "/accounts/register/")
+        self.assertEqual(self.client.get(reverse("photos:photo_list", args=[self.code])).status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(User.objects.count(), 1)  # only the administrator/owner created in setUp
+
+    def test_guests_upload_without_an_account(self):
+        raw = make_jpeg()
+        self.assertEqual(self._post("consent").status_code, 200)
+        h = hashlib.sha256(raw).hexdigest()
+        r = self._post("init", {"content_type": "image/jpeg", "size": len(raw),
+                                "hash": h, "name": "Ann"})
+        pid = r.json()["photo_id"]
+        url = reverse("photos:file", kwargs={"code": self.code, "photo_id": pid})
+        resp = self.client.post(url, {"file": SimpleUploadedFile("p.jpg", raw, "image/jpeg")},
+                                HTTP_X_DEVICE_TOKEN=TOKEN)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self._post("finalise", photo_id=pid).json()["status"], "approved")
+        photos = self.client.get(reverse("photos:photo_list", args=[self.code])).json()["photos"]
+        self.assertEqual(len(photos), 1)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(User.objects.count(), 1)

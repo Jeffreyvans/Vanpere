@@ -1,5 +1,0 @@
-{% extends "base.html" %}
-{% block title %}Create your account | VanPere Digital{% endblock %}
-{% block content %}<div class="container narrow"><div class="card"><h1>Create your account</h1>
-<form method="post" novalidate>{% csrf_token %}{% include "partials/form_fields.html" %}
-<button class="btn gold" type="submit">Create account</button></form><p>Already registered? <a href="{% url 'accounts:login' %}">Sign in</a></p></div></div>{% endblock %}

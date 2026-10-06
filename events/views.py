@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
@@ -8,7 +7,7 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from accounts.decorators import verified_required
+from accounts.decorators import staff_required
 from accounts.utils import client_ip
 from storage import get_storage
 
@@ -29,12 +28,12 @@ def _share_context(event):
 
 
 # ---- organiser views (owner-scoped) ----
-@login_required
+@staff_required
 def event_list(request):
     return render(request, "events/list.html", {"events": request.user.events.all()})
 
 
-@verified_required
+@staff_required
 def event_create(request):
     form = EventForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
@@ -46,7 +45,7 @@ def event_create(request):
         "form": form, "default_days": settings.DEFAULT_EVENT_EXPIRY_DAYS})
 
 
-@login_required
+@staff_required
 def event_edit(request, pk):
     event = _owned(request, pk)
     if event.files_purged_at:
@@ -61,13 +60,13 @@ def event_edit(request, pk):
         "form": form, "event": event, "default_days": settings.DEFAULT_EVENT_EXPIRY_DAYS})
 
 
-@login_required
+@staff_required
 def event_detail(request, pk):
     event = _owned(request, pk)
     return render(request, "events/detail.html", {"event": event, **_share_context(event)})
 
 
-@login_required
+@staff_required
 def qr_png(request, pk):
     event = _owned(request, pk)
     resp = HttpResponse(qr.qr_png(event.public_url), content_type="image/png")
@@ -75,7 +74,7 @@ def qr_png(request, pk):
     return resp
 
 
-@login_required
+@staff_required
 def qr_svg(request, pk):
     event = _owned(request, pk)
     resp = HttpResponse(qr.qr_svg(event.public_url), content_type="image/svg+xml")
@@ -83,7 +82,7 @@ def qr_svg(request, pk):
     return resp
 
 
-@login_required
+@staff_required
 def poster(request, pk, size):
     event = _owned(request, pk)
     if size not in qr.POSTER_SIZES:

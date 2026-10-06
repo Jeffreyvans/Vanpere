@@ -1,18 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
-<section class="hero"><h1>Every guest's photos, in one place</h1>
-<p>Create an event, share a QR code on WhatsApp or print it, and let guests upload and view photos. No app, no account for guests.</p>
-<a class="btn gold" href="{% url 'accounts:register' %}">Create your event</a></section>
-<section id="how"><h2>How it works</h2><div class="grid">
-<div class="card"><h3>1. Create</h3><p>Set up your wedding, birthday, funeral, church or corporate event in minutes.</p></div>
-<div class="card"><h3>2. Scan</h3><p>Guests scan your QR code or tap the WhatsApp link.</p></div>
-<div class="card"><h3>3. Share</h3><p>Every photo lands in one gallery, with a live slideshow for the venue.</p></div></div></section>
-<section><h2>Built for real events</h2><div class="grid">
-<div class="card">Weddings and birthdays</div><div class="card">Funerals and church events</div>
-<div class="card">Corporate functions and graduations</div></div></section>
-<section id="faq"><h2>FAQ</h2>
+<section class="hero">
+<h1>Every guest's photos, in one place</h1>
+<p>The administrator creates your event and sends you a link or QR code. Guests upload and view photos with no app and no account.</p>
+<p class="hero-actions">{% if user.is_staff %}<a class="btn gold" href="{% url 'events:create' %}">Create an event</a>{% elif user.is_authenticated %}<a class="btn gold" href="{% url 'accounts:home' %}">Your account</a>{% else %}<a class="btn ghost" href="{% url 'accounts:login' %}">Administrator sign in</a>{% endif %}</p>
+</section>
+<section class="section" id="how"><h2>How it works</h2><div class="grid">
+<div class="card step"><span class="step-n">1</span><h3>Create</h3><p>The administrator sets up your wedding, birthday, funeral, church or corporate event.</p></div>
+<div class="card step"><span class="step-n">2</span><h3>Scan</h3><p>Guests scan your QR code or tap the WhatsApp link.</p></div>
+<div class="card step"><span class="step-n">3</span><h3>Share</h3><p>Every photo lands in one gallery, with a live slideshow for the venue.</p></div></div></section>
+<section class="section"><h2>Built for real events</h2><div class="grid">
+<div class="card occasion">Weddings and birthdays</div>
+<div class="card occasion">Funerals and church events</div>
+<div class="card occasion">Corporate functions and graduations</div></div></section>
+<section class="section" id="faq"><h2>FAQ</h2>
 <details><summary>Do guests need an account?</summary><p>No. They scan, upload and view.</p></details>
+<details><summary>Can I create my own organiser account?</summary><p>No. VanPere Digital is administered by the operator. Ask them to create an event and send you the guest link.</p></details>
 <details><summary>Is location data removed from photos?</summary><p>Yes. GPS and other metadata are stripped from every shared version.</p></details>
-<details><summary>How long are photos kept?</summary><p>Until the event expiry date you choose, then they are purged.</p></details></section>
+<details><summary>How long are photos kept?</summary><p>Until the event expiry date you choose, then they are purged.</p></details>
+</section>
 </div>{% endblock %}

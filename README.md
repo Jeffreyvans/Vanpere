@@ -1,6 +1,6 @@
 # VanPere Digital
 
-Multi-event, mobile-first photo-sharing platform. Organisers create an event (wedding, birthday, funeral, church event, corporate function, graduation), share a QR code or WhatsApp link, and guests upload and view photos with no account.
+Multi-event, mobile-first photo-sharing platform. The administrator creates an event (wedding, birthday, funeral, church event, corporate function, graduation) for a customer, shares the generated QR code or WhatsApp link, and guests upload and view photos with no account. There is no public registration: the single built-in administrator account is created at deploy time by `create_admin`.
 
 Stack: Django 5 monolith (templates, vanilla-JS ES modules, no build step), PostgreSQL, S3-compatible object storage behind a swappable abstraction (with a local filesystem backend), Django REST Framework only for the upload and gallery JSON APIs, WhiteNoise, Gunicorn, Render.
 
@@ -9,14 +9,15 @@ Stack: Django 5 monolith (templates, vanilla-JS ES modules, no build step), Post
     python3.12 -m venv .venv && source .venv/bin/activate
     pip install -r requirements.txt
     cp .env.example .env            # defaults: SQLite, local storage, file-based email
+    # then edit .env and set ADMIN_EMAIL / ADMIN_PASSWORD (never commit the password)
     python manage.py makemigrations accounts events photos
     python manage.py migrate
     python manage.py createcachetable
-    python manage.py createsuperuser
-    python manage.py seed_demo      # demo organiser, event and 8 sample photos
+    python manage.py create_admin          # built-in administrator (ADMIN_EMAIL, ADMIN_PASSWORD)
+    python manage.py seed_demo             # demo event and 8 sample photos
     python manage.py runserver
 
-Then open http://localhost:8000. Register an organiser (the verification email is written under `var/dev-emails/`), verify, create an event, open the guest link, upload photos, view the gallery and `/slideshow/`, and moderate in `/dashboard/`. `seed_demo` prints the demo guest link and login (it refuses to run when `DEBUG` is off unless you pass `--force`).
+Then open http://localhost:8000. Sign in as the administrator, create an event for the customer, hand over the guest link, open it in a private window, upload photos, view the gallery and `/slideshow/`, and moderate in `/dashboard/`. `seed_demo` prints the demo guest link (it refuses to run when `DEBUG` is off unless you pass `--force`).
 
 Quality checks: `python manage.py test`, `ruff check .`, and `DEBUG=False SECRET_KEY=<50+ random chars> ALLOWED_HOSTS=example.com python manage.py check --deploy`. Run tests with `DEBUG=True` in your environment.
 
@@ -35,6 +36,7 @@ All settings come from the environment (see `.env.example`).
 | `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ADDRESSING_STYLE` | Object storage (R2, B2, S3, Wasabi). |
 | `EMAIL_*`, `DEFAULT_FROM_EMAIL` | File-based backend locally (`EMAIL_FILE_PATH`, default `var/dev-emails`), SMTP in production. |
 | `LOGIN_MAX_FAILURES`, `LOGIN_LOCKOUT_MINUTES` | Login and PIN lockout. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | The one built-in administrator. `create_admin` (run by `build.sh` after migrations) creates the account if missing, as staff/superuser, with the password stored only as a Django hash. It is idempotent, never prints the password, and only needs `ADMIN_PASSWORD` when the account does not exist yet. |
 | `UPLOAD_RATE_PER_DEVICE`, `UPLOAD_RATE_PER_IP`, `REPORT_RATE_PER_DEVICE`, `REPORT_RATE_PER_IP` | Hourly request limits. |
 | `REPORT_AUTO_HIDE_THRESHOLD` | Reports before a photo is hidden pending review (default 3). |
 | `DEFAULT_EVENT_EXPIRY_DAYS` | Default expiry after the event date (90). |
@@ -45,7 +47,7 @@ All settings come from the environment (see `.env.example`).
 ## What each app does
 
 - `config/`: settings, URLs, security-header (CSP) middleware, health check, robots.txt.
-- `accounts/`: email-login organisers, signed expiring verification links, throttled login, password reset, branded HTML+text emails.
+- `accounts/`: the single built-in administrator (`create_admin`), email login, signed expiring verification links, throttled login, password reset, branded HTML+text emails. There is no registration URL, form or API.
 - `events/`: `Event` model, organiser pages, public guest page with Open Graph tags, sharing (WhatsApp first), QR PNG/SVG, A4/A5/table-card PDF posters, viewing PIN, expiry lifecycle (`expire_events`), `seed_demo`. `timeutils.py` is the single source of expiry maths.
 - `photos/`: upload API (consent, duplicate check, presigned or fallback upload, finalise), image pipeline, gallery/viewer/slideshow pages and API, reports, guest delete, signed local media view, `cleanup_orphans`.
 - `storage/`: `PhotoStorage` interface with `LocalPhotoStorage` and `S3PhotoStorage`; `get_storage()` reads `STORAGE_BACKEND`. No other module touches boto3 or the filesystem for photos.
@@ -86,9 +88,9 @@ The browser resizes (2560 px, or 1600 px in low-bandwidth mode), computes SHA-25
 
 3. **Access keys.** R2, Manage API tokens, create a token with Object Read & Write limited to this bucket; copy the Access Key ID and Secret. Endpoint: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`. Use `S3_REGION=auto` and `S3_ADDRESSING_STYLE=path`.
 4. **Push** the repository (with the committed `migrations/` folders) to GitHub, then in Render choose New, Blueprint, and select it. Render creates the database, web service and two cron jobs.
-5. **Set environment variables** marked "sync: false" on the web service **and on both cron jobs** (the crons need the S3 keys and SMTP settings): `SITE_URL` (e.g. `https://vanpere-digital.onrender.com`), `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, plus `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` if you use a custom domain. `SECRET_KEY` is generated (shorter generated keys are stretched to 50+ characters automatically).
-6. **First deploy** runs `build.sh` (install, `collectstatic`, `migrate`, `createcachetable`). Check `/healthz/` returns `ok`.
-7. **Create the superuser** from the web service's Shell tab: `python manage.py createsuperuser`.
+5. **Set environment variables** marked "sync: false" on the web service **and on both cron jobs** (the crons need the S3 keys and SMTP settings): `SITE_URL` (e.g. `https://vanpere-digital.onrender.com`), `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, plus `ADMIN_EMAIL` and `ADMIN_PASSWORD` (the built-in administrator; store the password as a secret, never in Git), plus `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` if you use a custom domain. `SECRET_KEY` is generated (shorter generated keys are stretched to 50+ characters automatically).
+6. **First deploy** runs `build.sh` (install, `collectstatic`, `migrate`, `createcachetable`, `create_admin`). `create_admin` is idempotent: it creates the administrator only if the account does not exist and never prints the password. Check `/healthz/` returns `ok`.
+7. **Sign in** at `/accounts/login/` with `ADMIN_EMAIL` and the `ADMIN_PASSWORD` you set. Password reset and email verification work for that account.
 8. **Verify the cron jobs**: open each cron job, click "Trigger Run", and check the log for `expire_events: marked=... ` and `cleanup_orphans: removed=...`.
 
 `pillow-heif` and ReportLab ship binary wheels for Python 3.12 on Linux, so no system packages should be needed; this has not been verified on Render. Gunicorn runs threaded workers with a 120-second timeout so ZIP downloads can stream.
@@ -99,7 +101,7 @@ A4 and A5 use ReportLab page sizes. The table card is 100 x 150 mm trim size wit
 
 ## Known limitations
 
-- Not run in the build environment: the Django test suite, `check --deploy`, and the Render blueprint (see above). Run them before launch.
+- Not run in the build environment: `check --deploy` with production values, and the Render blueprint (see above). The Django test suite and `python manage.py check` pass locally (104 tests); run them before launch.
 - The service worker only caches the upload page and static files so the page opens on a poor connection. It does not upload in the background: queued uploads resume when the upload page is open and online.
 - Pinch zoom scales about the image centre, not the pinch point. Photo links work for anyone who has them (the photo is approved, the event is open and any PIN is entered), and link-preview images only work for events without a PIN.
 - Image URLs are signed for one hour: a gallery tab left open longer needs a reload (the slideshow refreshes URLs every poll). With S3 storage, file URLs cannot re-check PIN or approval at fetch time.

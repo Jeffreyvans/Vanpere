@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sign in | VanPere Digital{% endblock %}
-{% block content %}<div class="container narrow"><div class="card"><h1>Sign in</h1>
+{% block content %}<div class="narrow"><div class="card auth-card"><h1>Sign in</h1>
+<p class="lede">Administrator access only. Guests use the event link they were given.</p>
 <form method="post" novalidate>{% csrf_token %}{% include "partials/form_fields.html" %}
-<button class="btn gold" type="submit">Sign in</button></form><p><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a> &middot; <a href="{% url 'accounts:register' %}">Create an account</a></p></div></div>{% endblock %}
+<button class="btn gold" type="submit">Sign in</button></form>
+<p><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a></p></div></div>{% endblock %}

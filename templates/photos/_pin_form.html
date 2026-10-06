@@ -1,4 +1,4 @@
 <form class="card" method="post" action="{% url 'events:pin' event.public_code %}">{% csrf_token %}
 <input type="hidden" name="next" value="{{ next }}">
 <div class="field"><label for="pin">Enter the viewing PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="off" required></div>
-<button class="btn" type="submit">Unlock</button></form>
+<button class="btn gold" type="submit">Unlock</button></form>

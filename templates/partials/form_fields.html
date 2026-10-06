@@ -1,4 +1,13 @@
 {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-{% for f in form %}<div class="field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}
+{% for f in form %}
+{% if f.is_hidden %}{{ f }}
+{% elif f.field.widget.input_type == "checkbox" %}
+<div class="field field-check">{{ f }}<div><label for="{{ f.id_for_label }}">{{ f.label }}</label>
 {% if f.help_text %}<small>{{ f.help_text|safe }}</small>{% endif %}
-{% for e in f.errors %}<p class="err" role="alert">{{ e }}</p>{% endfor %}</div>{% endfor %}
+{% for e in f.errors %}<p class="err" role="alert">{{ e }}</p>{% endfor %}</div></div>
+{% else %}
+<div class="field"><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}
+{% if f.help_text %}<small>{{ f.help_text|safe }}</small>{% endif %}
+{% for e in f.errors %}<p class="err" role="alert">{{ e }}</p>{% endfor %}</div>
+{% endif %}
+{% endfor %}

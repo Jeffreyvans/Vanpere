@@ -1,6 +1,6 @@
 # VanPere Digital: requirement checklist
 
-Status: **Done** = implemented and covered by a written test or reviewed code path; **Partial** = implemented with a stated limitation; **Deferred** = not built. Nothing here was executed against a live Django install in the build environment (see README, Known limitations).
+Status: **Done** = implemented and covered by a written test or reviewed code path; **Partial** = implemented with a stated limitation; **Deferred** = not built. `python manage.py test` (104 tests) and `python manage.py check` were executed and pass; `check --deploy` and the Render blueprint were not executed against production values.
 
 | # | Requirement | Where | Status |
 |---|---|---|---|
@@ -14,7 +14,8 @@ Status: **Done** = implemented and covered by a written test or reviewed code pa
 | 2 | Africa/Harare, `USE_TZ`, one expiry helper | `events/timeutils.py` | Done |
 | 2 | Pinned versions, suggested libraries | `requirements.txt` | Done |
 | 3 | Project layout, custom user from first migration | repository root, `accounts/models.py` | Done |
-| 4 | Register, login, logout, verification (signed, expiring, resend), password reset | `accounts/` | Done |
+| 4 | Login, logout, verification (signed, expiring, resend), password reset | `accounts/` | Done |
+| 4 | No public registration (no URL, form, link or API); one built-in administrator from `ADMIN_EMAIL`/`ADMIN_PASSWORD` via idempotent `create_admin`, hashed password only | `accounts/management/commands/create_admin.py`, `accounts/urls.py`, `build.sh`, `.env.example` | Done |
 | 4 | Throttled login per IP and email, configurable | `accounts/throttle.py`, `accounts/forms.py` | Done |
 | 4 | Branded emails (verification, reset, event-created, expiry warning), HTML + text | `templates/emails/`, `accounts/emails.py`, `events/emails.py` | Done |
 | 5 | Event model and fields, 8-char unambiguous public code, UUID never public | `events/models.py` | Done |
@@ -55,11 +56,11 @@ Status: **Done** = implemented and covered by a written test or reviewed code pa
 | 16 | Local dev steps, `seed_demo` | README, `events/management/commands/seed_demo.py` | Done |
 | 17 | `expire_events` (mark, warn, purge; idempotent), `cleanup_orphans`, Render crons (UTC conversion documented) | `events/expiry.py`, `photos/services/cleanup.py`, `render.yaml`, README | Done |
 | 18 | `render.yaml`, `build.sh`, whitenoise, `/healthz/`, gunicorn, README deploy section | root files, README | Partial (not validated on Render) |
-| 19 | Tests across all listed areas | `*/tests*.py` | Done (written; not executed here) |
+| 19 | Tests across all listed areas | `*/tests*.py` | Done (`python manage.py test`: 104 tests pass) |
 | 19 | `check --deploy` clean | `config/settings.py` | Not run |
 | 19 | Indexes, N+1 avoidance, pagination, ruff config | `photos/models.py`, `dashboard/views.py`, `pyproject.toml` | Done |
 
 ## Deferred or not verified
 - Stage 8 built the three originally deferred items (pinch zoom, service worker, per-photo links); their JavaScript is syntax-checked only, not tried in a browser.
-- Not executed here: Django tests, `check --deploy`, `makemigrations` (migrations are not shipped), the Render blueprint, pillow-heif/ReportLab builds on Render, browser behaviour of the JavaScript (syntax-checked only).
+- Executed here: `python manage.py test` (104 tests, all pass) and `python manage.py check` (no issues). Not executed: `check --deploy` with production values, the Render blueprint, browser behaviour of the JavaScript (syntax-checked only).
 - Needs your input: legal text for Privacy/Terms, production email provider, final Open Graph artwork.

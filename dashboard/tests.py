@@ -21,7 +21,8 @@ class DashBase(MediaMixin, TestCase):
     def setUp(self):
         super().setUp()
         self.client.force_login(self.owner)
-        self.other = User.objects.create_user("x@example.com", PW, email_verified=True)
+        self.other = User.objects.create_user(
+            "x@example.com", PW, email_verified=True, is_staff=True, is_superuser=True)
 
     def make_photo(self, status=S.APPROVED, token=TOKEN, name=""):
         p = Photo.objects.create(
@@ -60,6 +61,18 @@ class ScopingTests(DashBase):
     def test_login_required(self):
         self.client.logout()
         self.assertEqual(self.client.get(reverse("dashboard:overview")).status_code, 302)
+
+    def test_non_staff_user_is_redirected_away(self):
+        """Only the administrator may open or manage the dashboard."""
+        plain = User.objects.create_user("plain@example.com", PW, email_verified=True)
+        self.client.force_login(plain)
+        self.assertRedirects(self.client.get(reverse("dashboard:overview")), reverse("accounts:home"))
+        for name in ("event", "photos", "review", "reports", "contributors", "download_zip",
+                     "regenerate", "delete"):
+            self.assertRedirects(self.client.get(self.url(name)), reverse("accounts:home"), msg_prefix=name)
+        r = self.client.post(self.url("delete"), {"confirm": "yes"})
+        self.assertRedirects(r, reverse("accounts:home"))
+        self.assertTrue(Event.objects.filter(pk=self.event.pk).exists())
 
 
 class OverviewTests(DashBase):

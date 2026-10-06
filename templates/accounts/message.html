@@ -1,4 +1,4 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} | VanPere Digital{% endblock %}
-{% block content %}<div class="container narrow"><div class="card"><h1>{{ title }}</h1><p>{{ body }}</p>
+{% block content %}<div class="narrow"><div class="card auth-card"><h1>{{ title }}</h1><p>{{ body }}</p>
 <p><a class="btn" href="{% url 'accounts:login' %}">Sign in</a></p></div></div>{% endblock %}

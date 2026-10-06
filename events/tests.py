@@ -51,8 +51,10 @@ class CodeTests(TestCase):
 class OrganiserTests(TestCase):
     def setUp(self):
         cache.clear()
-        self.owner = User.objects.create_user("o@example.com", PW, email_verified=True)
-        self.other = User.objects.create_user("x@example.com", PW, email_verified=True)
+        self.owner = User.objects.create_user(
+            "o@example.com", PW, email_verified=True, is_staff=True, is_superuser=True)
+        self.other = User.objects.create_user(
+            "x@example.com", PW, email_verified=True, is_staff=True, is_superuser=True)
 
     def _post_data(self, **kw):
         d = timeutils.local_today() + timedelta(days=5)
@@ -62,13 +64,26 @@ class OrganiserTests(TestCase):
         data.update(kw)
         return d, data
 
-    def test_unverified_cannot_create(self):
+    def test_non_admin_cannot_create(self):
         u = User.objects.create_user("u@example.com", PW)
         self.client.force_login(u)
         _, data = self._post_data()
         r = self.client.post(reverse("events:create"), data)
         self.assertRedirects(r, reverse("accounts:home"))
         self.assertEqual(Event.objects.count(), 0)
+
+    def test_non_admin_cannot_view_or_manage_events(self):
+        ev = make_event(self.owner)
+        u = User.objects.create_user("u2@example.com", PW, email_verified=True)
+        self.client.force_login(u)
+        for name, args in (("list", []), ("create", []),
+                           ("detail", [ev.pk]), ("edit", [ev.pk]), ("qr_png", [ev.pk])):
+            r = self.client.get(reverse(f"events:{name}", args=args))
+            self.assertRedirects(r, reverse("accounts:home"), msg_prefix=name)
+        self.client.logout()
+        for name, args in (("list", []), ("create", []), ("detail", [ev.pk])):
+            self.assertEqual(
+                self.client.get(reverse(f"events:{name}", args=args)).status_code, 302, name)
 
     def test_create_default_expiry_pin_hashed_and_email(self):
         self.client.force_login(self.owner)
@@ -102,7 +117,8 @@ class OrganiserTests(TestCase):
 class PublicTests(TestCase):
     def setUp(self):
         cache.clear()
-        self.owner = User.objects.create_user("o@example.com", PW, email_verified=True)
+        self.owner = User.objects.create_user(
+            "o@example.com", PW, email_verified=True, is_staff=True, is_superuser=True)
 
     def test_public_page_og_and_noindex(self):
         ev = make_event(self.owner)

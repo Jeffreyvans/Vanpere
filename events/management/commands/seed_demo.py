@@ -47,10 +47,14 @@ class Command(BaseCommand):
             raise CommandError("seed_demo creates a user with a known password. Run it in development "
                                "or pass --force if you really mean it.")
         user, created = User.objects.get_or_create(
-            email=o["email"].lower(), defaults={"full_name": "Demo Organiser", "email_verified": True})
+            email=o["email"].lower(),
+            defaults={"full_name": "Demo Organiser", "email_verified": True, "is_staff": True, "is_superuser": True})
         if created:
             user.set_password(o["password"])
             user.save()
+        elif not (user.is_staff and user.is_superuser and user.email_verified):
+            user.is_staff = user.is_superuser = user.email_verified = True
+            user.save(update_fields=["is_staff", "is_superuser", "email_verified"])
         event = Event.objects.filter(owner=user, name=DEMO_NAME).first()
         if event is None:
             day = timeutils.local_today() + timedelta(days=7)
@@ -67,4 +71,4 @@ class Command(BaseCommand):
                 process_photo(photo.id)
         self.stdout.write(self.style.SUCCESS(
             f"Demo ready.\n  Guest link: {event.public_url}\n  Organiser login: {user.email}"
-            + (f" / {o['password']}" if created else " (existing account, password unchanged)")))
+            + (" (password set for new account; not printed)" if created else " (existing account, password unchanged)")))

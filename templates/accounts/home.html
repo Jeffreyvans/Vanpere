@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Your account | VanPere Digital{% endblock %}
-{% block content %}<div class="container narrow"><div class="card"><h1>Hello{% if user.full_name %}, {{ user.full_name }}{% endif %}</h1>
-<p>{{ user.email }} &middot; {% if user.email_verified %}<strong>Verified</strong>{% else %}<strong>Not verified</strong>{% endif %}</p>
-{% if not user.email_verified %}<p>Verify your email to publish events and get a public event code.</p>
+{% block content %}<div class="narrow"><div class="card auth-card"><h1>Hello{% if user.full_name %}, {{ user.full_name }}{% endif %}</h1>
+<p>{{ user.email }}{% if user.is_staff %} · <span class="badge ok">Administrator</span>{% endif %}
+{% if user.email_verified %} · <span class="badge ok">Verified</span>{% else %} · <span class="badge warn">Not verified</span>{% endif %}</p>
+{% if not user.email_verified %}<p>Verify your email so password-reset and event emails reach you.</p>
 <form method="post" action="{% url 'accounts:resend_verification' %}">{% csrf_token %}<button class="btn gold" type="submit">Resend verification email</button></form>{% endif %}
-<p><a class="btn" href="{% url 'events:list' %}">My events</a></p></div></div>{% endblock %}
+{% if user.is_staff %}<p><a class="btn" href="{% url 'events:list' %}">Events</a> <a class="btn gold" href="{% url 'dashboard:overview' %}">Dashboard</a></p>{% endif %}
+</div></div>{% endblock %}

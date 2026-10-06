@@ -11,10 +11,10 @@
 <form method="post" action="{% url 'dashboard:toggle' event.pk 'allow_uploads' %}" class="toggle">{% csrf_token %}Uploads are <strong>{{ event.allow_uploads|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.allow_uploads|yesno:"off,on" }}</button></form>
 <form method="post" action="{% url 'dashboard:toggle' event.pk 'allow_downloads' %}" class="toggle">{% csrf_token %}Guest downloads of originals are <strong>{{ event.allow_downloads|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.allow_downloads|yesno:"off,on" }}</button></form>
 <form method="post" action="{% url 'dashboard:toggle' event.pk 'moderation_enabled' %}" class="toggle">{% csrf_token %}Moderation is <strong>{{ event.moderation_enabled|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.moderation_enabled|yesno:"off,on" }}</button></form>
-<p><a href="{% url 'events:edit' event.pk %}">Edit event, expiry and viewing PIN</a> &middot; <a href="{% url 'events:detail' event.pk %}">Share and QR</a></p></div>
+<p><a href="{% url 'events:edit' event.pk %}">Edit event, expiry and viewing PIN</a> · <a href="{% url 'events:detail' event.pk %}">Share and QR</a></p></div>
 <div class="card"><h2>Download</h2>
 {% if zip_large %}<p class="banner">This is a large event ({{ stats.approved }} photos). The ZIP streams originals and may take a while.</p>{% endif %}
 <p><a class="btn gold" href="{% url 'dashboard:download_zip' event.pk %}">Download approved photos (ZIP)</a></p></div>
-<div class="card"><h2>Danger zone</h2>
+<div class="card danger-zone"><h2>Danger zone</h2>
 <p><a href="{% url 'dashboard:regenerate' event.pk %}">Regenerate public code</a> (invalidates the old QR code)</p>
 <p><a class="err" href="{% url 'dashboard:delete' event.pk %}">Delete event</a></p></div></div></div>{% endblock %}

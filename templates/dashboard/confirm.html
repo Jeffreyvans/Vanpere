@@ -1,5 +1,5 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} | VanPere Digital{% endblock %}
-{% block content %}<div class="container narrow"><div class="card"><h1>{{ title }}</h1><p><strong>{{ event.name }}</strong></p><p>{{ body }}</p>
-<form method="post">{% csrf_token %}<label><input type="checkbox" name="confirm" value="yes" required> I understand</label>
+{% block content %}<div class="narrow"><div class="card auth-card"><h1>{{ title }}</h1><p><strong>{{ event.name }}</strong></p><p>{{ body }}</p>
+<form method="post">{% csrf_token %}<p class="field-check"><input type="checkbox" name="confirm" value="yes" required id="confirm"><label for="confirm">I understand</label></p>
 <p><button class="btn {% if danger %}danger{% else %}gold{% endif %}" type="submit">{{ button }}</button> <a href="{% url 'dashboard:event' event.pk %}">Cancel</a></p></form></div></div>{% endblock %}

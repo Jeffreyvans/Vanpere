@@ -2,7 +2,6 @@ import uuid
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Count, Max, Prefetch, Q
 from django.http import StreamingHttpResponse
@@ -10,6 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 from django.views.decorators.http import require_POST
+
+from accounts.decorators import staff_required
 
 from events.models import Event
 from photos.models import Photo, Report
@@ -48,7 +49,7 @@ def _stats(event):
     }
 
 
-@login_required
+@staff_required
 def overview(request):
     events = list(Event.objects.filter(owner=request.user).annotate(
         n_photos=Count("photos", filter=~Q(photos__status=S.UPLOADING), distinct=True),
@@ -70,7 +71,7 @@ def overview(request):
         "quota_percent": min(100, round(used * 100 / quota)) if quota else 0})
 
 
-@login_required
+@staff_required
 def event_dashboard(request, pk):
     event = _event(request, pk)
     stats = _stats(event)
@@ -78,7 +79,7 @@ def event_dashboard(request, pk):
         "event": event, "stats": stats, "zip_large": stats["approved"] > settings.ZIP_WARN_PHOTOS})
 
 
-@login_required
+@staff_required
 def photos(request, pk):
     event = _event(request, pk)
     tab = request.GET.get("tab") or ("pending" if event.moderation_enabled else "approved")
@@ -102,7 +103,7 @@ def photos(request, pk):
         "keep": urlencode({"tab": tab, "q": q, "sort": sort}), "here": request.get_full_path()})
 
 
-@login_required
+@staff_required
 def review(request, pk):
     """Quick-review mode: oldest pending photo first; keys A approve, R reject, S skip."""
     event = _event(request, pk)
@@ -120,7 +121,7 @@ def review(request, pk):
         "here": request.get_full_path()})
 
 
-@login_required
+@staff_required
 @require_POST
 def bulk(request, pk):
     event = _event(request, pk)
@@ -156,7 +157,7 @@ def bulk(request, pk):
     return _redirect_back(request, reverse("dashboard:photos", args=[event.pk]))
 
 
-@login_required
+@staff_required
 def reports(request, pk):
     event = _event(request, pk)
     flagged = (Photo.objects.filter(event=event, reports__dismissed=False)
@@ -170,7 +171,7 @@ def reports(request, pk):
     return render(request, "dashboard/reports.html", {"event": event, "photos": rows})
 
 
-@login_required
+@staff_required
 @require_POST
 def report_action(request, pk, photo_id):
     event = _event(request, pk)
@@ -193,7 +194,7 @@ def report_action(request, pk, photo_id):
     return redirect("dashboard:reports", pk=event.pk)
 
 
-@login_required
+@staff_required
 def contributors(request, pk):
     event = _event(request, pk)
     rows = list(Photo.objects.filter(event=event).exclude(status=S.UPLOADING).values("uploader_hash")
@@ -209,7 +210,7 @@ def contributors(request, pk):
     return render(request, "dashboard/contributors.html", {"event": event, "rows": rows})
 
 
-@login_required
+@staff_required
 @require_POST
 def contributor_remove(request, pk):
     event = _event(request, pk)
@@ -219,7 +220,7 @@ def contributor_remove(request, pk):
     return redirect("dashboard:contributors", pk=event.pk)
 
 
-@login_required
+@staff_required
 def download_zip(request, pk):
     event = _event(request, pk)
     qs = Photo.objects.filter(event=event, status=S.APPROVED).order_by("created_at", "id")
@@ -237,7 +238,7 @@ def download_zip(request, pk):
     return resp
 
 
-@login_required
+@staff_required
 @require_POST
 def toggle(request, pk, field):
     event = _event(request, pk)
@@ -250,7 +251,7 @@ def toggle(request, pk, field):
     return redirect("dashboard:event", pk=event.pk)
 
 
-@login_required
+@staff_required
 def regenerate(request, pk):
     event = _event(request, pk)
     if request.method == "POST" and request.POST.get("confirm") == "yes":
@@ -263,7 +264,7 @@ def regenerate(request, pk):
         "button": "Regenerate code"})
 
 
-@login_required
+@staff_required
 def delete_event(request, pk):
     event = _event(request, pk)
     if request.method == "POST" and request.POST.get("confirm") == "yes":
