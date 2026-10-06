@@ -6,6 +6,8 @@ from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
 
+from .s3env import s3_env
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
@@ -87,14 +89,19 @@ STORAGES = {
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local")
+# Object storage (Filebase by default: endpoint https://s3.filebase.io, bucket vanpere,
+# region auto, signature s3v4). AWS_* names win, legacy S3_* names still work and
+# template placeholders are treated as unset (see config/s3env.py).
+STORAGE_BACKEND = (os.getenv("STORAGE_BACKEND") or "local").strip().lower()
 MEDIA_ROOT = BASE_DIR / os.getenv("MEDIA_ROOT", "media")
-S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL") or None
-S3_REGION = os.getenv("S3_REGION") or None
-S3_BUCKET = os.getenv("S3_BUCKET", "")
-S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID", "")
-S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY", "")
-S3_ADDRESSING_STYLE = os.getenv("S3_ADDRESSING_STYLE", "auto")
+_s3 = s3_env(os.environ)
+S3_ENDPOINT_URL = _s3["endpoint"]
+S3_REGION = _s3["region"]
+S3_BUCKET = _s3["bucket"]
+S3_ACCESS_KEY_ID = _s3["access_key_id"]
+S3_SECRET_ACCESS_KEY = _s3["secret_access_key"]
+S3_ADDRESSING_STYLE = _s3["addressing_style"]
+S3_SIGNATURE_VERSION = _s3["signature_version"]
 
 # Console backend flushes sys.stdout and raises OSError [Errno 22] on Windows.
 _default_email_backend = (

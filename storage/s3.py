@@ -1,20 +1,35 @@
 import boto3
 from botocore.config import Config
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 
 class S3PhotoStorage:
-    """S3-compatible backend (R2, B2, AWS S3, Wasabi)."""
+    """S3-compatible backend (Filebase, AWS S3, B2, Wasabi).
+
+    Talks to the endpoint from settings (Filebase: https://s3.filebase.io) with
+    region "auto" and s3v4 signatures; credentials come only from the server
+    environment and are never rendered into pages or APIs.
+    """
 
     def __init__(self):
         self.bucket = settings.S3_BUCKET
+        if not self.bucket:
+            raise ImproperlyConfigured(
+                "STORAGE_BACKEND=s3 requires a bucket: set AWS_STORAGE_BUCKET_NAME "
+                "(or the legacy S3_BUCKET).")
+        if not settings.S3_ACCESS_KEY_ID or not settings.S3_SECRET_ACCESS_KEY:
+            raise ImproperlyConfigured(
+                "STORAGE_BACKEND=s3 requires credentials: set AWS_ACCESS_KEY_ID and "
+                "AWS_SECRET_ACCESS_KEY (or the legacy S3_ACCESS_KEY_ID / "
+                "S3_SECRET_ACCESS_KEY) in the server environment; never commit them.")
         self.client = boto3.client(
             "s3",
             endpoint_url=settings.S3_ENDPOINT_URL,
             region_name=settings.S3_REGION,
             aws_access_key_id=settings.S3_ACCESS_KEY_ID,
             aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
-            config=Config(signature_version="s3v4",
+            config=Config(signature_version=settings.S3_SIGNATURE_VERSION,
                           s3={"addressing_style": settings.S3_ADDRESSING_STYLE}),
         )
 
@@ -43,14 +58,16 @@ class S3PhotoStorage:
             return False
 
     def url(self, key, expires=3600, download_name=None):
+        """Private object access: a short-lived presigned GET, never a public URL."""
         params = {"Bucket": self.bucket, "Key": key}
         if download_name:
             params["ResponseContentDisposition"] = f"attachment; filename=\"{download_name}\""
         return self.client.generate_presigned_url("get_object", Params=params, ExpiresIn=expires)
 
     def presign_upload(self, key, content_type, max_bytes, expires=600):
-        """Presigned PUT (R2 does not support POST policies). S3 cannot cap the size of a PUT URL,
-        so the size limit is enforced when the upload is finalised (see image_pipeline)."""
+        """Presigned PUT (Filebase's S3 API supports it; POST policies are not used).
+        S3 cannot cap the size of a PUT URL, so the size limit is enforced when the
+        upload is finalised (see image_pipeline)."""
         url = self.client.generate_presigned_url(
             "put_object", Params={"Bucket": self.bucket, "Key": key, "ContentType": content_type},
             ExpiresIn=expires)
