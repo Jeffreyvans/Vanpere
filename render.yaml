@@ -46,12 +46,12 @@ envVarGroups:
       - key: SECRET_KEY
         generateValue: true
 
-databases:
-  - name: vanpere-digital-db
-    plan: basic-256mb
-    databaseName: vanpere
-    user: vanpere
-
+# Production database: the Render PostgreSQL instance `vanpere-database`, created in
+# the Render Dashboard (NOT by this blueprint) and shared by the web service and both
+# cron jobs through the private DATABASE_URL environment variable (sync: false below).
+# The value is entered only in the Render Dashboard - never in this file, never in Git.
+# Note: syncing a Blueprint never deletes an existing resource, so removing a resource
+# definition here (e.g. the old `databases:` block) cannot destroy database data.
 services:
   - type: web
     name: vanpere-digital
@@ -63,9 +63,7 @@ services:
     envVars:
       - fromGroup: vanpere-shared
       - key: DATABASE_URL
-        fromDatabase:
-          name: vanpere-digital-db
-          property: connectionString
+        sync: false
       - key: ALLOWED_HOSTS
         sync: false
       - key: CSRF_TRUSTED_ORIGINS
@@ -99,9 +97,7 @@ services:
     envVars:
       - fromGroup: vanpere-shared
       - key: DATABASE_URL
-        fromDatabase:
-          name: vanpere-digital-db
-          property: connectionString
+        sync: false
       - key: SITE_URL
         sync: false
       # Filebase credentials: set these in the Render dashboard only (never in Git).
@@ -127,9 +123,7 @@ services:
     envVars:
       - fromGroup: vanpere-shared
       - key: DATABASE_URL
-        fromDatabase:
-          name: vanpere-digital-db
-          property: connectionString
+        sync: false
       - key: SITE_URL
         sync: false
       # Filebase credentials: set these in the Render dashboard only (never in Git).
