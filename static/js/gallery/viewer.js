@@ -40,6 +40,7 @@ export class Viewer {
     this.pinch = null;
     this.pinched = false;
     this.liked = false;
+    this.likeCount = 0;
     this.likeBusy = false;
     this.commentCount = 0;
     this.commentsPhoto = null;
@@ -126,7 +127,7 @@ export class Viewer {
     this.commentBody.value = "";
     this.status.textContent = "";
     this.liked = Boolean(p.liked);
-    this.like = p.likes || 0;
+    this.likeCount = p.likes || 0;
     this.commentCount = p.comments || 0;
     this.updateSocial();
     this.closeComments();
@@ -149,8 +150,8 @@ export class Viewer {
 
   key(e) {
     if (e.key === "Escape") return this.close();
-    if (e.key === "l" || e.key === "L") return this.like();
     if (typing(e.target)) return;
+    if (e.key === "l" || e.key === "L") return this.like();
     const panStep = 60;
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       const dir = e.key === "ArrowLeft" ? 1 : -1;
@@ -287,7 +288,7 @@ export class Viewer {
     const likeBtn = this.btn.like;
     likeBtn.setAttribute("aria-pressed", this.liked ? "true" : "false");
     likeBtn.classList.toggle("on", this.liked);
-    document.getElementById("v-likes").textContent = String(this.like);
+    document.getElementById("v-likes").textContent = String(this.likeCount);
     document.getElementById("v-comment-n").textContent = String(this.commentCount);
   }
 
@@ -298,9 +299,9 @@ export class Viewer {
     try {
       const res = await postJson(`${this.ctx.api}photos/${p.id}/like/`, this.ctx.token, {});
       this.liked = Boolean(res.liked);
-      this.like = Number(res.count) || 0;
+      this.likeCount = Number(res.count) || 0;
       this.updateSocial();
-      this.ctx.setCounts?.(p.id, { likes: this.like });
+      this.ctx.setCounts?.(p.id, { likes: this.likeCount });
     } catch (err) {
       this.status.textContent = err.status === 429 ? "Too many likes. Please try later." : "Could not update the like.";
     } finally {
