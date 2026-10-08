@@ -1,5 +1,12 @@
+import hashlib
+import logging
+import secrets
+
 from django.conf import settings
 from django.contrib import messages
+from django.core import signing
+from django.core.cache import cache
+from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
@@ -16,9 +23,38 @@ from .emails import send_event_created
 from .forms import EventForm
 from .models import Event
 
+logger = logging.getLogger(__name__)
+
+CREATE_TOKEN_SALT = "event-create"
+CREATE_TOKEN_MAX_AGE = 6 * 3600  # how long an opened form stays re-submittable
+CREATE_DUP_WINDOW = 600  # seconds a completed submission is remembered as a duplicate
+
 
 def _owned(request, pk):
     return get_object_or_404(Event, pk=pk, owner=request.user)
+
+
+def _new_create_token():
+    return signing.dumps({"n": secrets.token_hex(8)}, salt=CREATE_TOKEN_SALT)
+
+
+def _dup_key(token):
+    return "event-create:" + hashlib.sha256(token.encode()).hexdigest()
+
+
+def _prior_create(request, token):
+    """Event already created by this exact form submission (double click, browser re-POST)."""
+    if not token:
+        return None
+    try:
+        signing.loads(token, salt=CREATE_TOKEN_SALT, max_age=CREATE_TOKEN_MAX_AGE)
+    except signing.BadSignature:
+        logger.warning("event_create: rejecting tampered submission token")
+        return None
+    pk = cache.get(_dup_key(token))
+    if not pk:
+        return None
+    return Event.objects.filter(pk=pk, owner=request.user).first()
 
 
 def _share_context(event):
@@ -35,14 +71,35 @@ def event_list(request):
 
 @staff_required
 def event_create(request):
+    token = str(request.POST.get("submission_token", "")) if request.method == "POST" else ""
     form = EventForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
-        event = form.save(owner=request.user)
-        send_event_created(event)
+        prior = _prior_create(request, token)
+        if prior is not None:
+            messages.info(request, "That event has already been created.")
+            return redirect("events:detail", pk=prior.pk)
+        with transaction.atomic():
+            event = form.save(owner=request.user)
+        if token:
+            cache.set(_dup_key(token), str(event.pk), CREATE_DUP_WINDOW)
+        if form.cover_failed:
+            messages.warning(
+                request,
+                "Your event is live, but the cover image could not be uploaded. "
+                "Edit the event and try the cover again.")
+        try:
+            send_event_created(event)
+        except Exception:
+            # The event exists and must never be reported as a failure.
+            logger.exception("event_create: confirmation email failed for event %s", event.pk)
+            messages.warning(
+                request, "Your event is live, but the confirmation email could not be sent.")
         messages.success(request, "Your event is live. Share the link or QR code with your guests.")
         return redirect("events:detail", pk=event.pk)
     return render(request, "events/form.html", {
-        "form": form, "default_days": settings.DEFAULT_EVENT_EXPIRY_DAYS})
+        "form": form, "default_days": settings.DEFAULT_EVENT_EXPIRY_DAYS,
+        "submission_token": token or _new_create_token(),
+        "submit_label": "Creating event...", "idle_label": "Save event"})
 
 
 @staff_required
@@ -53,11 +110,16 @@ def event_edit(request, pk):
         return redirect("events:detail", pk=event.pk)
     form = EventForm(request.POST or None, request.FILES or None, instance=event)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        with transaction.atomic():
+            form.save()
+        if form.cover_failed:
+            messages.warning(
+                request, "The event was updated, but the new cover image could not be uploaded.")
         messages.success(request, "Event updated.")
         return redirect("events:detail", pk=event.pk)
     return render(request, "events/form.html", {
-        "form": form, "event": event, "default_days": settings.DEFAULT_EVENT_EXPIRY_DAYS})
+        "form": form, "event": event, "default_days": settings.DEFAULT_EVENT_EXPIRY_DAYS,
+        "submit_label": "Saving event...", "idle_label": "Save changes"})
 
 
 @staff_required

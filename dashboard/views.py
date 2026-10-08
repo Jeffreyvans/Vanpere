@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 from accounts.decorators import staff_required
 
 from events.models import Event
-from photos.models import Photo, Report
+from photos.models import Comment, Like, Photo, Report
 from storage import get_storage
 
 from . import services
@@ -39,10 +39,13 @@ def _redirect_back(request, fallback):
 def _stats(event):
     counts = {r["status"]: r["n"] for r in
               Photo.objects.filter(event=event).values("status").annotate(n=Count("id"))}
+    videos = (Photo.objects.filter(event=event, media_type=Photo.MediaType.VIDEO)
+              .exclude(status=S.UPLOADING).count())
     return {
         "photos": sum(n for st, n in counts.items() if st != S.UPLOADING),
         "approved": counts.get(S.APPROVED, 0), "pending": counts.get(S.PENDING, 0),
         "rejected": counts.get(S.REJECTED, 0),
+        "videos": videos,
         "contributors": Photo.objects.filter(event=event).exclude(status=S.UPLOADING)
         .values("uploader_hash").distinct().count(),
         "open_reports": Photo.objects.filter(event=event, reports__dismissed=False).distinct().count(),
@@ -75,8 +78,33 @@ def overview(request):
 def event_dashboard(request, pk):
     event = _event(request, pk)
     stats = _stats(event)
+    storage = get_storage()
+    approved = Photo.objects.filter(event=event, status=S.APPROVED)
+    like_counts = {r["photo_id"]: r["n"] for r in
+                   Like.objects.filter(photo__event=event).values("photo_id").annotate(n=Count("id"))}
+    comment_counts = {r["photo_id"]: r["n"] for r in
+                      Comment.objects.filter(photo__event=event).values("photo_id").annotate(n=Count("id"))}
+    recent = list(approved.order_by("-created_at", "-id")[:8])
+    for p in recent:
+        p.thumb_url = storage.url(p.key("thumb"))
+        p.likes_n = like_counts.get(p.id, 0)
+        p.comments_n = comment_counts.get(p.id, 0)
+    recent_comments = (Comment.objects.filter(photo__event=event).select_related("photo")
+                       .order_by("-created_at", "-id")[:8])
+    for c in recent_comments:
+        c.photo_thumb = storage.url(c.photo.key("thumb"))
+        c.photo_url = reverse("dashboard:photos", args=[event.pk]) + f"?tab=approved#{c.photo_id}"
+        c.photo_share_url = reverse("photos:photo", args=[event.public_code, c.photo_id])
+    top_liked = list(approved.annotate(n_likes=Count("likes")).order_by("-n_likes", "-created_at")[:6])
+    for p in top_liked:
+        p.thumb_url = storage.url(p.key("thumb"))
+        p.comments_n = comment_counts.get(p.id, 0)
     return render(request, "dashboard/event.html", {
-        "event": event, "stats": stats, "zip_large": stats["approved"] > settings.ZIP_WARN_PHOTOS})
+        "event": event, "stats": stats, "zip_large": stats["approved"] > settings.ZIP_WARN_PHOTOS,
+        "total_likes": sum(like_counts.values()), "total_comments": sum(comment_counts.values()),
+        "recent_photos": recent, "recent_comments": recent_comments, "top_liked": top_liked,
+        "share_url": event.public_url, "share_subject": f"Join the {event.name} gallery",
+        "share_text": f"Photos from {event.name} on VanPere Digital: {event.public_url}"})
 
 
 @staff_required
@@ -236,6 +264,29 @@ def download_zip(request, pk):
     resp["Content-Disposition"] = f'attachment; filename="vanpere-{event.public_code}-photos.zip"'
     resp["Cache-Control"] = "no-store"
     return resp
+
+
+@staff_required
+def comments(request, pk):
+    event = _event(request, pk)
+    qs = (Comment.objects.filter(photo__event=event).select_related("photo")
+          .order_by("-created_at", "-id"))
+    page = Paginator(qs, PAGE_SIZE).get_page(request.GET.get("page"))
+    storage = get_storage()
+    for c in page:
+        c.photo_thumb = storage.url(c.photo.key("thumb"))
+        c.photo_share_url = reverse("photos:photo", args=[event.public_code, c.photo_id])
+    return render(request, "dashboard/comments.html",
+                  {"event": event, "page": page, "here": request.get_full_path()})
+
+
+@staff_required
+@require_POST
+def comment_delete(request, pk, comment_id):
+    event = _event(request, pk)
+    deleted = Comment.objects.filter(pk=comment_id, photo__event=event).delete()[0]
+    messages.success(request, "Comment deleted." if deleted else "That comment has already been removed.")
+    return _redirect_back(request, reverse("dashboard:comments", args=[event.pk]))
 
 
 @staff_required

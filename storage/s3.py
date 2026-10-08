@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 import boto3
 from botocore.config import Config
 from django.conf import settings
@@ -34,8 +37,10 @@ class S3PhotoStorage:
         )
 
     def put(self, key, data, content_type):
-        body = data if isinstance(data, bytes) else data.read()
-        self.client.put_object(Bucket=self.bucket, Key=key, Body=body, ContentType=content_type)
+        if isinstance(data, bytes):
+            self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
+            return
+        self.client.upload_fileobj(data, self.bucket, key, ExtraArgs={"ContentType": content_type})
 
     def get_stream(self, key):
         return self.client.get_object(Bucket=self.bucket, Key=key)["Body"]
@@ -57,6 +62,12 @@ class S3PhotoStorage:
         except self.client.exceptions.ClientError:
             return False
 
+    def size(self, key):
+        return self.client.head_object(Bucket=self.bucket, Key=key)["ContentLength"]
+
+    def copy(self, src, dst):
+        self.client.copy_object(Bucket=self.bucket, Key=dst, CopySource={"Bucket": self.bucket, "Key": src})
+
     def url(self, key, expires=3600, download_name=None):
         """Private object access: a short-lived presigned GET, never a public URL."""
         params = {"Bucket": self.bucket, "Key": key}
@@ -72,3 +83,23 @@ class S3PhotoStorage:
             "put_object", Params={"Bucket": self.bucket, "Key": key, "ContentType": content_type},
             ExpiresIn=expires)
         return {"method": "PUT", "url": url, "headers": {"Content-Type": content_type}}
+
+    def create_multipart(self, key, content_type):
+        resp = self.client.create_multipart_upload(
+            Bucket=self.bucket, Key=key, ContentType=content_type)
+        return {"upload_id": resp["UploadId"]}
+
+    def presign_part(self, key, upload_id, part_number, expires=600):
+        return self.client.generate_presigned_url(
+            "upload_part", Params={"Bucket": self.bucket, "Key": key,
+                                   "UploadId": upload_id, "PartNumber": part_number},
+            ExpiresIn=expires)
+
+    def complete_multipart(self, key, upload_id, parts):
+        self.client.complete_multipart_upload(
+            Bucket=self.bucket, Key=key, UploadId=upload_id,
+            MultipartUpload={"Parts": [{"PartNumber": int(p["PartNumber"]), "ETag": p["ETag"]}
+                                       for p in parts]})
+
+    def abort_multipart(self, key, upload_id):
+        self.client.abort_multipart_upload(Bucket=self.bucket, Key=key, UploadId=upload_id)

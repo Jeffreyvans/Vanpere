@@ -38,7 +38,11 @@ class Event(models.Model):
     allow_downloads = models.BooleanField("Let guests download originals", default=False)
     moderation_enabled = models.BooleanField(default=False)
     max_upload_size_mb = models.PositiveSmallIntegerField(
-        default=15, validators=[MinValueValidator(1), MaxValueValidator(50)])
+        default=15, validators=[MinValueValidator(1), MaxValueValidator(50)],
+        help_text="Maximum size per photo in MB.")
+    max_video_size_mb = models.PositiveIntegerField(
+        default=500, validators=[MinValueValidator(1)],
+        help_text="Maximum size per video in MB.")
     max_photos_per_upload = models.PositiveSmallIntegerField(
         default=20, validators=[MinValueValidator(1), MaxValueValidator(50)])
     view_pin_hash = models.CharField(max_length=128, blank=True)

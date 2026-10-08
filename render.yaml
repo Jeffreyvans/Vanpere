@@ -37,6 +37,30 @@ envVarGroups:
         value: "15"
       - key: REPORT_AUTO_HIDE_THRESHOLD
         value: "3"
+      - key: UPLOAD_RATE_PER_DEVICE
+        value: "120"
+      - key: UPLOAD_RATE_PER_IP
+        value: "400"
+      - key: COMMENT_RATE_PER_DEVICE
+        value: "30"
+      - key: COMMENT_RATE_PER_IP
+        value: "120"
+      - key: LIKE_RATE_PER_DEVICE
+        value: "120"
+      - key: LIKE_RATE_PER_IP
+        value: "400"
+      - key: MAX_IMAGE_UPLOAD_MB
+        value: "100"
+      - key: MAX_VIDEO_UPLOAD_MB
+        value: "500"
+      - key: VIDEO_PART_MB
+        value: "8"
+      - key: PREVIEW_EDGE
+        value: "2000"
+      - key: THUMB_EDGE
+        value: "400"
+      - key: POSTER_MAX_KB
+        value: "500"
       - key: EXPIRY_WARNING_DAYS
         value: "7,1"
       - key: PURGE_GRACE_DAYS

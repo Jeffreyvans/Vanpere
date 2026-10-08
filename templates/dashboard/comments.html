@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Comments | {{ event.name }}{% endblock %}
+{% block content %}<div class="container"><header class="page-head"><p class="eyebrow">Moderation</p><h1>{{ event.name }}</h1></header>{% include "dashboard/_nav.html" %}
+{% if page.object_list %}
+<p><strong>{{ page.paginator.count }}</strong> comment{{ page.paginator.count|pluralize }} across the event. Deleting removes a comment for everyone.</p>
+<table class="dtable"><thead><tr><th>Media</th><th>Guest</th><th>Comment</th><th>When</th><th>Action</th></tr></thead><tbody>
+{% for c in page %}
+<tr>
+<td><a href="{{ c.photo_share_url }}" target="_blank" rel="noopener"><img src="{{ c.photo_thumb }}" alt="" loading="lazy" style="border-radius:6px;object-fit:cover;width:56px;height:42px"></a></td>
+<td>{{ c.name|default:"Guest" }}</td>
+<td style="white-space:pre-wrap;overflow-wrap:anywhere">{{ c.body }}</td>
+<td>{{ c.created_at|date:"j M Y, H:i" }}</td>
+<td><form method="post" action="{% url 'dashboard:comment_delete' event.pk c.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ here }}"><button class="btn danger" type="submit" data-confirm="Delete this comment for everyone?">Delete</button></form></td>
+</tr>{% endfor %}</tbody></table>
+<p class="pager">{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">&larr; Newer</a>{% endif %}
+Page {{ page.number }} of {{ page.paginator.num_pages }}
+{% if page.has_next %}<a href="?page={{ page.next_page_number }}">Older &rarr;</a>{% endif %}</p>
+{% else %}<p class="empty-state">No comments yet. When guests comment on photos they will appear here.</p>{% endif %}</div>
+<script type="module" src="{% static 'js/dashboard/select.js' %}"></script>{% endblock %}

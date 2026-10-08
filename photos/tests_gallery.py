@@ -113,7 +113,7 @@ class ActionTests(GalleryBase):
 
         r = self.client.get(self.url("photo_download", photo_id=p.id))
         self.assertEqual(r.status_code, 302)
-        self.assertTrue(key_of(r).endswith("medium.jpg"))
+        self.assertTrue(key_of(r).endswith("medium.webp"))
         served = self.client.get(r["Location"])
         self.assertEqual(served.status_code, 200)
         self.assertIn("attachment", served["Content-Disposition"])

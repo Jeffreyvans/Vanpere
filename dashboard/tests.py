@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from accounts.models import User
 from events.models import Event
-from photos.models import Photo, Report
+from photos.models import Comment, Like, Photo, Report
 from photos.security import device_hash
 from photos.tests import MediaMixin, TOKEN, make_jpeg
 from storage import get_storage
@@ -239,3 +239,48 @@ class DangerTests(DashBase):
         self.client.post(self.url("delete"), {"confirm": "yes"})
         self.assertFalse(Event.objects.exists() or Photo.objects.exists())
         self.assertFalse(get_storage().exists(p.key("original")))
+
+
+class SocialDashboardTests(DashBase):
+    def _comment(self, photo, body, name="", token=TOKEN):
+        return Comment.objects.create(photo=photo, actor_hash=device_hash(token), name=name, body=body)
+
+    def test_event_page_shows_recent_comments_and_top_liked(self):
+        p1 = self.make_photo(name="Ann")
+        p2 = self.make_photo(name="Bob")
+        Like.objects.create(photo=p1, actor_hash=device_hash("c" * 32))
+        Like.objects.create(photo=p2, actor_hash=device_hash("d" * 32))
+        Like.objects.create(photo=p1, actor_hash=device_hash("e" * 32))
+        self._comment(p1, "Beautiful!", name="Ann")
+        r = self.client.get(self.url("event"))
+        self.assertEqual(r.context["total_likes"], 3)
+        self.assertEqual(r.context["total_comments"], 1)
+        self.assertEqual(r.context["top_liked"][0].id, p1.id)
+        self.assertEqual(r.context["recent_comments"][0].body, "Beautiful!")
+        self.assertContains(r, "Beautiful!")
+        self.assertContains(r, "2 likes")
+        self.assertContains(r, "Event sharing")
+        self.assertContains(r, "Copy link")
+
+    def test_comments_tab_lists_and_delete(self):
+        p = self.make_photo()
+        c1 = self._comment(p, "Great shot <script>alert(1)</script>")
+        c2 = self._comment(p, "Another", token="b" * 32)
+        r = self.client.get(self.url("comments"))
+        self.assertContains(r, "Great shot &lt;script&gt;alert(1)&lt;/script&gt;")
+        self.assertContains(r, "Another")
+        self.client.post(self.url("comment_delete", comment_id=c1.id))
+        self.assertFalse(Comment.objects.filter(pk=c1.pk).exists())
+        self.assertTrue(Comment.objects.filter(pk=c2.pk).exists())
+        r = self.client.get(self.url("comments"))
+        self.assertNotContains(r, "Great shot")
+
+    def test_social_scoping_other_organiser_404_and_login_required(self):
+        p = self.make_photo()
+        c = self._comment(p, "hi")
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(self.url("comments")).status_code, 404)
+        self.assertEqual(self.client.post(self.url("comment_delete", comment_id=c.id)).status_code, 404)
+        self.assertTrue(Comment.objects.filter(pk=c.pk).exists())
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url("comments")).status_code, 302)

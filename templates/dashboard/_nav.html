@@ -5,5 +5,6 @@
 <a href="{% url 'dashboard:photos' event.pk %}"{% if cur == "photos" %} class="on" aria-current="page"{% endif %}>Photos</a>
 <a href="{% url 'dashboard:review' event.pk %}"{% if cur == "review" %} class="on" aria-current="page"{% endif %}>Quick review</a>
 <a href="{% url 'dashboard:reports' event.pk %}"{% if cur == "reports" %} class="on" aria-current="page"{% endif %}>Reports</a>
+<a href="{% url 'dashboard:comments' event.pk %}"{% if cur == "comments" %} class="on" aria-current="page"{% endif %}>Comments</a>
 <a href="{% url 'dashboard:contributors' event.pk %}"{% if cur == "contributors" %} class="on" aria-current="page"{% endif %}>Contributors</a></nav>
 {% endwith %}

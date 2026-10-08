@@ -4,23 +4,45 @@ const MAX_SCALE = 5;
 const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 const typing = (el) => ["input", "textarea", "select"].includes((el?.tagName || "").toLowerCase());
 
-/** Full-screen photo viewer: swipe/keys, preload, pinch and double-tap zoom, share, download, report, delete. */
+function timeAgo(iso) {
+  const age = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (!Number.isFinite(age)) return "";
+  if (age < 60) return "just now";
+  if (age < 3600) return `${Math.floor(age / 60)}m ago`;
+  if (age < 86400) return `${Math.floor(age / 3600)}h ago`;
+  if (age < 86400 * 30) return `${Math.floor(age / 86400)}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+/** Full-screen photo viewer: swipe/keys, preload, pinch and double-tap zoom, share,
+ * download, like, comments, report, delete. */
 export class Viewer {
   constructor(ctx) {
     this.ctx = ctx;
     const $ = (id) => document.getElementById(id);
     this.el = $("viewer");
     this.img = $("v-img");
+    this.video = $("v-video");
     this.status = $("v-status");
     this.reportForm = $("v-report");
+    this.social = $("v-social");
+    this.commentList = $("v-comments");
+    this.commentForm = $("v-comment-form");
+    this.commentName = $("v-comment-name");
+    this.commentBody = $("v-comment-body");
     this.btn = { close: $("v-close"), prev: $("v-prev"), next: $("v-next"), share: $("v-share"),
-      download: $("v-download"), report: $("v-report-open"), del: $("v-delete") };
+      download: $("v-download"), like: $("v-like"), comments: $("v-comments-open"),
+      report: $("v-report-open"), del: $("v-delete") };
     this.i = 0;
     this.scale = 1;
     this.pan = { x: 0, y: 0 };
     this.lastTap = 0;
     this.pinch = null;
     this.pinched = false;
+    this.liked = false;
+    this.likeBusy = false;
+    this.commentCount = 0;
+    this.commentsPhoto = null;
     this.bind($);
   }
 
@@ -33,9 +55,13 @@ export class Viewer {
     b.prev.addEventListener("click", () => this.step(-1));
     b.next.addEventListener("click", () => this.step(1));
     b.share.addEventListener("click", () => this.share());
+    b.like.addEventListener("click", () => this.like());
+    b.comments.addEventListener("click", () => this.toggleComments());
+    b.comments.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") e.preventDefault(); });
     b.report.addEventListener("click", () => { this.reportForm.hidden = false; $("v-reason").focus(); });
     $("v-report-cancel").addEventListener("click", () => { this.reportForm.hidden = true; });
     this.reportForm.addEventListener("submit", (e) => { e.preventDefault(); this.report($("v-reason").value, $("v-note").value); });
+    this.commentForm.addEventListener("submit", (e) => this.submitComment(e));
     b.del.addEventListener("click", () => this.remove());
     this.el.addEventListener("keydown", (e) => this.key(e));
     this.img.addEventListener("dblclick", () => this.setScale(this.scale > 1 ? 1 : 2.5));
@@ -65,6 +91,7 @@ export class Viewer {
     this.el.hidden = true;
     document.body.classList.remove("noscroll");
     this.setScale(1);
+    this.closeComments();
     this.lastFocus?.focus?.();
   }
 
@@ -73,17 +100,42 @@ export class Viewer {
     const p = this.photo;
     if (!p) return this.close();
     this.setScale(1);
-    this.img.src = p.medium;
-    this.img.alt = `Photo ${this.i + 1} of ${photos.length}${p.name ? `, shared by ${p.name}` : ""}`;
+    if (p.type === "video") {
+      this.img.hidden = true;
+      this.img.removeAttribute("src");
+      this.video.hidden = false;
+      if (this.video.src !== p.video) {
+        this.video.src = p.video;
+        this.video.poster = p.thumb || "";
+        this.video.load?.();
+      }
+      this.video.alt = "";
+      this.img.alt = "";
+    } else {
+      this.video.hidden = true;
+      this.video.pause?.();
+      this.video.removeAttribute("src");
+      this.video.load?.();
+      this.img.hidden = false;
+      this.img.src = p.medium;
+      this.img.alt = `Photo ${this.i + 1} of ${photos.length}${p.name ? `, shared by ${p.name}` : ""}`;
+    }
     this.btn.download.href = `${this.ctx.api}photos/${p.id}/download/`;
     this.btn.del.hidden = !p.mine;
     this.reportForm.hidden = true;
+    this.commentBody.value = "";
     this.status.textContent = "";
+    this.liked = Boolean(p.liked);
+    this.like = p.likes || 0;
+    this.commentCount = p.comments || 0;
+    this.updateSocial();
+    this.closeComments();
     this.btn.prev.hidden = this.i === 0;
-    [this.i - 1, this.i + 1].forEach((n) => { if (photos[n]) new Image().src = photos[n].medium; });
+    const preload = (n) => { const t = photos[n]; if (t) new Image().src = t.medium || t.thumb || ""; };
+    [this.i - 1, this.i + 1].forEach(preload);
     if (this.i >= photos.length - 3 && this.ctx.hasMore()) {
       await this.ctx.loadMore();
-      new Image().src = this.ctx.photos()[this.i + 1]?.medium || "";
+      preload(this.i + 1);
     }
     this.btn.next.hidden = this.i >= this.ctx.photos().length - 1 && !this.ctx.hasMore();
   }
@@ -97,6 +149,7 @@ export class Viewer {
 
   key(e) {
     if (e.key === "Escape") return this.close();
+    if (e.key === "l" || e.key === "L") return this.like();
     if (typing(e.target)) return;
     const panStep = 60;
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
@@ -108,7 +161,7 @@ export class Viewer {
     else if (e.key === "-") this.setScale(this.scale / 1.5);
     else if (e.key === "0") this.setScale(1);
     else if (e.key === "Tab") {
-      const f = [...this.el.querySelectorAll("button:not([hidden]), a[href], select, input")].filter((n) => !n.closest("[hidden]"));
+      const f = [...this.el.querySelectorAll("button:not([hidden]), a[href], select, input, textarea")].filter((n) => !n.closest("[hidden]"));
       if (!f.length) return;
       const first = f[0];
       const last = f[f.length - 1];
@@ -227,5 +280,149 @@ export class Viewer {
     if (!left) return this.close();
     this.i = Math.min(this.i, left - 1);
     this.show();
+  }
+
+  // ---- social: like ----
+  updateSocial() {
+    const likeBtn = this.btn.like;
+    likeBtn.setAttribute("aria-pressed", this.liked ? "true" : "false");
+    likeBtn.classList.toggle("on", this.liked);
+    document.getElementById("v-likes").textContent = String(this.like);
+    document.getElementById("v-comment-n").textContent = String(this.commentCount);
+  }
+
+  async like() {
+    const p = this.photo;
+    if (this.likeBusy) return;
+    this.likeBusy = true;
+    try {
+      const res = await postJson(`${this.ctx.api}photos/${p.id}/like/`, this.ctx.token, {});
+      this.liked = Boolean(res.liked);
+      this.like = Number(res.count) || 0;
+      this.updateSocial();
+      this.ctx.setCounts?.(p.id, { likes: this.like });
+    } catch (err) {
+      this.status.textContent = err.status === 429 ? "Too many likes. Please try later." : "Could not update the like.";
+    } finally {
+      this.likeBusy = false;
+    }
+  }
+
+  // ---- social: comments ----
+  toggleComments() {
+    if (this.social.hidden) {
+      this.social.hidden = false;
+      this.btn.comments.setAttribute("aria-expanded", "true");
+      this.loadComments();
+      this.commentBody.focus();
+    } else {
+      this.closeComments();
+    }
+  }
+
+  closeComments() {
+    this.social.hidden = true;
+    this.btn.comments.setAttribute("aria-expanded", "false");
+    this.commentList.replaceChildren();
+    this.commentsPhoto = null;
+  }
+
+  async loadComments() {
+    const p = this.photo;
+    this.commentsPhoto = p.id;
+    const list = this.commentList;
+    list.replaceChildren();
+    const pending = document.createElement("p");
+    pending.className = "vnote";
+    pending.textContent = "Loading comments…";
+    list.append(pending);
+    try {
+      const res = await fetch(`${this.ctx.api}photos/${p.id}/comments/?limit=100`,
+        { headers: { "X-Device-Token": this.ctx.token }, credentials: "same-origin" });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (this.commentsPhoto !== p.id) return;
+      this.commentCount = Number(data.count) || 0;
+      this.updateSocial();
+      this.renderComments(data.comments || []);
+    } catch {
+      list.replaceChildren();
+      const err = document.createElement("p");
+      err.className = "vnote";
+      err.textContent = "Could not load comments.";
+      list.append(err);
+    }
+  }
+
+  renderComments(comments) {
+    const list = this.commentList;
+    list.replaceChildren();
+    if (!comments.length) {
+      const empty = document.createElement("p");
+      empty.className = "vnote";
+      empty.textContent = "No comments yet. Be the first to say something nice.";
+      list.append(empty);
+      return;
+    }
+    for (const c of comments) {
+      const row = document.createElement("div");
+      row.className = "vcomment";
+      row.dataset.id = c.id;
+      const meta = document.createElement("p");
+      meta.className = "vcomment-meta";
+      const who = document.createElement("strong");
+      who.textContent = c.name || "Guest";
+      const when = document.createElement("span");
+      when.textContent = timeAgo(c.at);
+      meta.append(who, when);
+      const body = document.createElement("p");
+      body.className = "vcomment-body";
+      body.textContent = c.body;
+      row.append(meta, body);
+      if (c.mine) {
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "vbtn vcomment-del";
+        del.textContent = "Delete";
+        del.addEventListener("click", () => this.deleteComment(c.id, row));
+        row.append(del);
+      }
+      list.append(row);
+    }
+  }
+
+  async submitComment(e) {
+    e.preventDefault();
+    const body = this.commentBody.value.trim();
+    if (!body) return;
+    const p = this.photo;
+    try {
+      const res = await postJson(`${this.ctx.api}photos/${p.id}/comments/create/`,
+        this.ctx.token, { name: this.commentName.value.trim(), body });
+      this.commentBody.value = "";
+      this.commentCount = Number(res.count) || this.commentCount;
+      this.updateSocial();
+      this.ctx.setCounts?.(p.id, { comments: this.commentCount });
+      if (this.commentsPhoto === p.id) await this.loadComments();
+      this.status.textContent = "Comment posted.";
+    } catch (err) {
+      this.status.textContent = err.status === 429 ? "Too many comments. Please try later."
+        : err.status === 400 ? "That comment could not be posted." : "Could not post the comment.";
+    }
+  }
+
+  async deleteComment(id, row) {
+    const p = this.photo;
+    try {
+      await postJson(`${this.ctx.api}photos/${p.id}/comments/${id}/delete/`, this.ctx.token, {});
+      row.remove();
+      this.commentCount = Math.max(0, this.commentCount - 1);
+      this.updateSocial();
+      this.ctx.setCounts?.(p.id, { comments: this.commentCount });
+      if (!this.commentList.querySelector(".vcomment")) this.renderComments([]);
+      this.status.textContent = "Comment deleted.";
+    } catch {
+      this.status.textContent = "Could not delete the comment.";
+    }
   }
 }

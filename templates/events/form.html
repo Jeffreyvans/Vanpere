@@ -7,10 +7,11 @@
 <p class="page-lead">{% if event %}Update the details, expiry and sharing options for {{ event.name }}.{% else %}Set up the event, then share the link or QR code with your guests.{% endif %}</p>
 </header>
 <div class="card auth-card" data-reveal>
-<form method="post" enctype="multipart/form-data" novalidate data-default-days="{{ default_days }}">{% csrf_token %}
+<form method="post" enctype="multipart/form-data" novalidate data-default-days="{{ default_days }}" data-submit-label="{{ submit_label }}">{% csrf_token %}
+{% if submission_token %}<input type="hidden" name="submission_token" value="{{ submission_token }}">{% endif %}
 {% include "partials/form_fields.html" %}
 <p id="expiry-hint" class="hint" aria-live="polite"></p>
-<div class="form-actions"><button class="btn gold" type="submit">Save event</button>
+<div class="form-actions"><button class="btn gold" type="submit">{{ idle_label }}</button>
 {% if event %}<a class="btn ghost" href="{% url 'events:detail' event.pk %}">Cancel</a>{% endif %}</div>
 </form>
 </div>

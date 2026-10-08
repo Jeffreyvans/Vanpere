@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone as dt_tz
 
 from django.conf import settings
 from django.contrib.auth import get_user as user_from_session
-from django.db.models import F, Q
+from django.db.models import Count, F, Q
 from django.db.models.functions import Greatest
 from django.http import HttpResponseRedirect, JsonResponse
 from django.views.decorators.http import require_GET
@@ -19,7 +19,7 @@ from storage import get_storage
 
 from . import ratelimit
 from .api import _own_photo, err, guest_api
-from .models import Photo, Report
+from .models import Comment, Like, Photo, Report
 from .security import device_hash, device_token, digest
 from .services.image_pipeline import discard_photo
 from accounts.utils import client_ip
@@ -69,9 +69,15 @@ def _parse_cursor(raw):
         return None
 
 
-def _item(photo, storage, mine):
-    return {"id": str(photo.id), "w": photo.width, "h": photo.height, "mine": mine,
+def _item(photo, storage, mine, liked=False, likes=0, comments=0):
+    base = {"id": str(photo.id), "w": photo.width, "h": photo.height, "mine": mine,
             "name": photo.uploader_name, "at": photo.created_at.isoformat(),
+            "likes": likes, "liked": liked, "comments": comments}
+    if photo.is_video:
+        return {**base, "type": "video",
+                "thumb": storage.url(photo.key("poster")) if photo.poster_bytes else None,
+                "video": storage.url(photo.key("original"))}
+    return {**base, "type": "image",
             "thumb": storage.url(photo.key("thumb")), "medium": storage.url(photo.key("medium"))}
 
 
@@ -100,7 +106,16 @@ def photo_list(request, code):
     token = device_token(request)
     dh = device_hash(token) if token else None
     storage = get_storage()
-    items = [_item(p, storage, bool(dh) and hmac.compare_digest(p.uploader_hash, dh)) for p in rows]
+    ids = [p.id for p in rows]
+    liked_ids = set(Like.objects.filter(photo_id__in=ids, actor_hash=dh).values_list("photo_id", flat=True)) \
+        if dh else set()
+    like_counts = {r["photo_id"]: r["n"] for r in
+                   Like.objects.filter(photo_id__in=ids).values("photo_id").annotate(n=Count("id"))}
+    comment_counts = {r["photo_id"]: r["n"] for r in
+                      Comment.objects.filter(photo_id__in=ids).values("photo_id").annotate(n=Count("id"))}
+    items = [_item(p, storage, bool(dh) and hmac.compare_digest(p.uploader_hash, dh),
+                   liked=p.id in liked_ids, likes=like_counts.get(p.id, 0),
+                   comments=comment_counts.get(p.id, 0)) for p in rows]
     return _no_store(Response({"photos": items, "next": _cursor(rows[-1]) if more else None,
                                "count": base.count()}))
 
@@ -114,7 +129,9 @@ def slideshow_data(request, code):
     storage = get_storage()
     rows = Photo.objects.filter(event=event, status=APPROVED).order_by("-created_at", "-id")[:300]
     return _no_store(Response({"name": event.name, "photos": [
-        {"id": str(p.id), "medium": storage.url(p.key("medium"))} for p in rows]}))
+        {"id": str(p.id), "type": "video" if p.is_video else "image",
+         "medium": storage.url(p.key("poster") if p.is_video and p.poster_bytes else p.key("medium"))}
+        for p in rows]}))
 
 
 @require_GET
@@ -129,8 +146,14 @@ def download(request, code, photo_id):
     photo = qs.first()
     if photo is None:
         return JsonResponse({"error": "not_found"}, status=404)
-    version = "original" if (event.allow_downloads or owner) else "medium"
-    name = f"vanpere-{event.public_code}-{str(photo.id)[:8]}.jpg"
+    if photo.is_video:
+        # Videos have no preview derivative, so a download always serves the original.
+        version = "original"
+        ext = photo.original_extension or "mp4"
+    else:
+        version = "original" if (event.allow_downloads or owner) else "medium"
+        ext = photo.original_extension or "jpg"
+    name = f"vanpere-{event.public_code}-{str(photo.id)[:8]}.{ext}"
     return HttpResponseRedirect(get_storage().url(photo.key(version), expires=300, download_name=name))
 
 

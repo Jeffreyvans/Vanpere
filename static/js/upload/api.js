@@ -25,7 +25,7 @@ export function xhrSend(url, { method = "POST", body, headers = {}, onProgress }
     x.open(method, url);
     Object.entries(headers).forEach(([k, v]) => x.setRequestHeader(k, v));
     if (onProgress) x.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
-    x.onload = () => resolve({ status: x.status, text: x.responseText });
+    x.onload = () => resolve({ status: x.status, text: x.responseText, headers: x.getAllResponseHeaders() });
     x.onerror = () => reject(new Error("network"));
     x.ontimeout = x.onerror;
     x.send(body);

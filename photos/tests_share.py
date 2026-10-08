@@ -1,10 +1,14 @@
 from datetime import timedelta
+import uuid
 
 from django.test import TestCase
 from django.urls import reverse
 
 from events import timeutils
+from storage import get_storage
 from .models import Photo
+from .security import device_hash
+from .tests import TOKEN, make_jpeg
 from .tests_gallery import GalleryBase
 
 
@@ -57,7 +61,50 @@ class PhotoLinkTests(GalleryBase):
 
     def test_og_image_served_for_open_event(self):
         r = self.og(self.make_photo())
-        self.assertEqual((r.status_code, r["Content-Type"]), (200, "image/jpeg"))
+        self.assertEqual((r.status_code, r["Content-Type"]), (200, "image/webp"))
+
+
+class VideoShareTests(GalleryBase):
+    def make_video(self, status=Photo.Status.APPROVED, poster=True):
+        p = Photo.objects.create(
+            event=self.event, uploader_hash=device_hash(TOKEN), ip_hash="i",
+            declared_content_type="video/mp4", media_type=Photo.MediaType.VIDEO,
+            status=status, width=0, height=0, content_hash=uuid.uuid4().hex * 2,
+            original_bytes=100, poster_bytes=50 if poster else 0)
+        get_storage().put(p.key("original"), b"fake-mp4", "video/mp4")
+        if poster:
+            get_storage().put(p.key("poster"), make_jpeg((80, 60)), "image/webp")
+        return p
+
+    def page(self, photo, code=None):
+        return self.client.get(reverse("photos:photo", args=[code or self.event.public_code, photo.id]))
+
+    def test_video_page_renders_player_and_download(self):
+        video = self.make_video()
+        r = self.page(video)
+        self.assertContains(r, "<video")
+        self.assertContains(r, "controls")
+        self.assertContains(r, "Download video")
+        self.assertContains(r, reverse("photos:photo_download",
+                                       args=[self.event.public_code, video.id]))
+        self.assertContains(r, "wa.me")
+
+    def test_video_page_without_poster_still_renders(self):
+        r = self.page(self.make_video(poster=False))
+        self.assertContains(r, "<video")
+        self.assertNotContains(r, "poster=")
+
+    def test_pending_and_pin_and_expiry_fail_closed(self):
+        pending = self.make_video(status=Photo.Status.PENDING)
+        self.assertEqual(self.page(pending).status_code, 404)
+        p = self.make_video()
+        self.lock_with_pin()
+        r = self.page(p)
+        self.assertContains(r, 'name="pin"')
+        self.assertNotContains(r, "<video")
+        self.event.expires_at = timeutils.end_of_day(timeutils.local_today() - timedelta(days=1))
+        self.event.save()
+        self.assertContains(self.page(p), "This event has ended")
 
 
 class ServiceWorkerTests(TestCase):

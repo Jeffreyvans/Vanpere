@@ -24,12 +24,21 @@
 <button id="v-close" class="vbtn vclose" type="button" aria-label="Close viewer">&times;</button>
 <button id="v-prev" class="vbtn vprev" type="button" aria-label="Previous photo">&lsaquo;</button>
 <button id="v-next" class="vbtn vnext" type="button" aria-label="Next photo">&rsaquo;</button>
-<div id="v-stage" class="vstage"><img id="v-img" alt=""></div>
+<div id="v-stage" class="vstage"><img id="v-img" alt=""><video id="v-video" class="v-video" controls playsinline preload="metadata"></video></div>
 <div class="vbar"><button class="vbtn" id="v-share" type="button">Share</button>
 <a class="vbtn" id="v-download" href="#">Download</a>
+<button class="vbtn vlike" id="v-like" type="button" aria-pressed="false"><svg class="vlike-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3l-1.6-1.5C5.9 14.6 3 11.9 3 8.5 3 5.9 5 4 7.7 4c1.7 0 3.3 0.9 4.3 2.2C13 4.9 14.6 4 16.3 4 19 4 21 5.9 21 8.5c0 3.4-2.9 6.1-7.4 10.3L12 20.3z"/></svg><span id="v-likes">0</span></button>
+<button class="vbtn" id="v-comments-open" type="button" aria-expanded="false">Comments <span id="v-comment-n">0</span></button>
 <button class="vbtn" id="v-report-open" type="button">Report</button>
 <button class="vbtn" id="v-delete" type="button" hidden>Delete</button></div>
 <p class="vnote">{% if event.allow_downloads %}Downloads are the full-size original.{% else %}Downloads are medium quality; the organiser has not enabled originals.{% endif %}</p>
+<section id="v-social" class="vsocial" aria-label="Comments on this photo" hidden>
+<div id="v-comments" class="vcomments" role="region" aria-live="polite"></div>
+<form id="v-comment-form" class="vcomment-form">
+<input id="v-comment-name" name="name" maxlength="40" autocomplete="off" placeholder="Name (optional)" aria-label="Your name (optional)">
+<textarea id="v-comment-body" name="body" rows="2" maxlength="500" placeholder="Add a comment" aria-label="Add a comment"></textarea>
+<button class="vbtn" type="submit">Post comment</button>
+</form></section>
 <form id="v-report" class="vreport" hidden>
 <label for="v-reason">Why are you reporting this photo?</label>
 <select id="v-reason"><option value="inappropriate">Inappropriate or offensive</option><option value="privacy">Privacy concern</option><option value="spam">Spam or unrelated</option><option value="other">Something else</option></select>

@@ -156,6 +156,13 @@ REST_FRAMEWORK = {"DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRen
 REPORT_RATE_PER_DEVICE = int(os.getenv("REPORT_RATE_PER_DEVICE", "20"))
 REPORT_RATE_PER_IP = int(os.getenv("REPORT_RATE_PER_IP", "100"))
 
+# Guest comments and likes (per hour); like toggling is cheap so the caps are generous.
+COMMENT_RATE_PER_DEVICE = int(os.getenv("COMMENT_RATE_PER_DEVICE", "30"))
+COMMENT_RATE_PER_IP = int(os.getenv("COMMENT_RATE_PER_IP", "120"))
+LIKE_RATE_PER_DEVICE = int(os.getenv("LIKE_RATE_PER_DEVICE", "120"))
+LIKE_RATE_PER_IP = int(os.getenv("LIKE_RATE_PER_IP", "400"))
+COMMENT_MAX_LENGTH = int(os.getenv("COMMENT_MAX_LENGTH", "500"))
+
 # Stage 6: dashboard limits
 ORGANISER_QUOTA_MB = int(os.getenv("ORGANISER_QUOTA_MB", "2048"))  # soft quota, warning only
 ZIP_MAX_PHOTOS = int(os.getenv("ZIP_MAX_PHOTOS", "2000"))
@@ -165,6 +172,20 @@ ZIP_WARN_PHOTOS = int(os.getenv("ZIP_WARN_PHOTOS", "500"))
 EXPIRY_WARNING_DAYS = [int(x) for x in os.getenv("EXPIRY_WARNING_DAYS", "7,1").split(",") if x.strip()]
 PURGE_GRACE_DAYS = int(os.getenv("PURGE_GRACE_DAYS", "14"))
 ORPHAN_MAX_AGE_HOURS = int(os.getenv("ORPHAN_MAX_AGE_HOURS", "24"))
+
+# Stage 8: media — per-media-type server caps (guests upload directly to object storage)
+# and the default derivative sizes. Originals are stored untouched; only thumb/preview
+# are derived (WebP) so memory/CPU stay bounded when a reviewer downloads originals.
+MAX_IMAGE_UPLOAD_MB = int(os.getenv("MAX_IMAGE_UPLOAD_MB", "100"))
+MAX_VIDEO_UPLOAD_MB = int(os.getenv("MAX_VIDEO_UPLOAD_MB", "500"))
+PREVIEW_EDGE = int(os.getenv("PREVIEW_EDGE", "2000"))  # WebP preview, longest edge
+THUMB_EDGE = int(os.getenv("THUMB_EDGE", "400"))  # WebP thumbnail, longest edge
+VIDEO_PART_MB = int(os.getenv("VIDEO_PART_MB", "8"))  # multipart chunk size for videos
+POSTER_MAX_KB = int(os.getenv("POSTER_MAX_KB", "500"))
+# Server-side upload fallback streamed to disk in Django: allow large request bodies.
+# This is only a degraded path, never the primary route for big files.
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(64 * 1024 * 1024)))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(16 * 1024 * 1024)))
 LOGGING = {
     "version": 1, "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},

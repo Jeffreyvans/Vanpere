@@ -15,7 +15,9 @@
 <p><a class="btn ghost" href="{% url 'photos:gallery' event.public_code %}">View the gallery</a></p></div>
 {% else %}
 <noscript><p class="banner">Please turn on JavaScript to upload photos.</p></noscript>
-<div id="uploader" data-api="/api/events/{{ event.public_code }}/" data-code="{{ event.public_code }}" data-max-mb="{{ event.max_upload_size_mb }}" data-max-photos="{{ event.max_photos_per_upload }}">
+<div id="uploader" data-api="/api/events/{{ event.public_code }}/" data-code="{{ event.public_code }}"
+data-max-mb="{{ event.max_upload_size_mb }}" data-max-video="{{ event.max_video_size_mb }}"
+data-max-photos="{{ event.max_photos_per_upload }}" data-part-mb="8">
 <section id="consent" class="card consent" hidden><h2>Before you upload</h2>
 <p>By uploading you agree to share these photos with event guests.</p>
 <p class="field-check"><input type="checkbox" id="consent-check"> <label for="consent-check">I agree</label></p>
@@ -24,18 +26,18 @@
 <div class="field"><label for="guest-name">Your name (optional)</label><input id="guest-name" maxlength="60" autocomplete="name" placeholder="How you'd like to be credited"></div>
 <div id="dropzone" class="dropzone">
 <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-<h2>Drag photos here</h2>
+<h2>Drag photos or videos here</h2>
 <p>Or pick them from your phone — camera roll, screenshots, HEIC and all.</p>
 <div class="dz-actions">
-<input id="file-input" class="sr-only" type="file" accept="image/*,.heic,.heif" multiple>
+<input id="file-input" class="sr-only" type="file" accept="image/*,.heic,.heif,video/*" multiple>
 <input id="camera-input" class="sr-only" type="file" accept="image/*" capture="environment">
-<label class="btn gold" for="file-input">Choose photos</label>
+<label class="btn gold" for="file-input">Choose photos or videos</label>
 <label class="btn" for="camera-input">Take a photo</label>
 </div>
-<p class="hint">Up to {{ event.max_photos_per_upload }} photos at a time, {{ event.max_upload_size_mb }} MB each.</p>
-<p class="fineprint">Location data is stripped before your photo is shared.</p>
+<p class="hint">Up to {{ event.max_photos_per_upload }} files at a time, {{ event.max_upload_size_mb }} MB per photo and {{ event.max_video_size_mb }} MB per video.</p>
+<p class="fineprint">Your originals are stored exactly as they are; only the preview and thumbnail are re-created, and location data is stripped.</p>
 </div>
-<p class="field-check"><input type="checkbox" id="low-bw"> <label for="low-bw">Low-bandwidth mode (smaller photos, one at a time)</label></p>
+<p class="field-check"><input type="checkbox" id="low-bw"> <label for="low-bw">Low-bandwidth mode (upload one at a time)</label></p>
 <p id="low-bw-note" class="hint" hidden>We turned this on because your connection looks slow or data saver is on.</p>
 <ul id="items" class="items"></ul>
 <p id="summary" class="hint" role="status" aria-live="polite"></p></section></div>

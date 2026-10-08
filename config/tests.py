@@ -15,7 +15,7 @@ class SecurityHeaderTests(TestCase):
     def test_csp_allows_bucket_for_images_and_uploads(self):
         csp = self.client.get("/")["Content-Security-Policy"]
         for origin in ("https://s3.filebase.io", "https://vanpere.s3.filebase.io"):
-            self.assertEqual(csp.count(origin), 2, origin)  # img-src and connect-src
+            self.assertEqual(csp.count(origin), 3, origin)  # img-src, connect-src and media-src (videos)
 
     def test_healthz_and_robots(self):
         self.assertEqual(self.client.get("/healthz/").content, b"ok")

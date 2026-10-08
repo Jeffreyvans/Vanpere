@@ -1413,6 +1413,37 @@ details p:first-of-type { padding-top: 0.1rem; }
   animation: shimmer 1.4s infinite linear;
 }
 .tile.loading::after { position: absolute; inset: 0; z-index: 2; }
+.tile-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 2.1rem;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.tile:hover .tile-play { opacity: 1; }
+.tile-meta {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.45rem;
+  z-index: 1;
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(12, 11, 20, 0.55);
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--r-pill);
+  pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+}
 
 .viewer {
   position: fixed;
@@ -1489,6 +1520,51 @@ details p:first-of-type { padding-top: 0.1rem; }
   padding: 0.55rem 0.7rem;
   border: 1px solid transparent;
 }
+
+.vlike-heart { width: 1.05em; height: 1.05em; fill: transparent; stroke: currentColor; stroke-width: 1.7; margin-right: 0.35rem; }
+.vlike { display: inline-flex; align-items: center; }
+.vlike.on {
+  background: var(--gold-dark);
+  border-color: var(--gold);
+  color: #fff;
+}
+.vlike.on .vlike-heart { fill: var(--gold); stroke: var(--gold); animation: heart-pop 0.35s var(--ease); }
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.vsocial {
+  max-width: 34rem;
+  width: calc(100% - 2rem);
+  margin: 0 auto 0.7rem;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--r-md);
+  max-height: 46vh;
+  display: flex;
+  flex-direction: column;
+}
+.vsocial[hidden] { display: none; }
+.vcomments { overflow-y: auto; display: grid; gap: 0.7rem; padding: 0.35rem 0.25rem 0.15rem; }
+.vcomment { border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding-bottom: 0.6rem; }
+.vcomment:last-child { border-bottom: 0; padding-bottom: 0; }
+.vcomment-meta { display: flex; gap: 0.6rem; align-items: baseline; font-size: 0.8rem; color: #cfcabf; margin-bottom: 0.15rem; }
+.vcomment-meta strong { color: #fff; }
+.vcomment-body { margin: 0; font-size: 0.95rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vcomment-del { min-height: 32px; min-width: 0; padding: 0 0.7rem; font-size: 0.78rem; margin-top: 0.35rem; }
+.vcomment-form { display: grid; gap: 0.45rem; margin-top: 0.6rem; border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 0.6rem; }
+.vcomment-form input, .vcomment-form textarea {
+  color: var(--ink);
+  border-radius: var(--r-sm);
+  padding: 0.55rem 0.7rem;
+  border: 1px solid transparent;
+  font: inherit;
+  resize: vertical;
+}
+.vcomment-form textarea { min-height: 2.8rem; }
+.vcomment-form .vbtn { justify-self: start; }
 
 /* --------------------------------------------------------------------------
    13. Slideshow

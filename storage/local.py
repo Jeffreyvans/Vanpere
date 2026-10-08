@@ -23,7 +23,14 @@ class LocalPhotoStorage:
         p = self._path(key)
         p.parent.mkdir(parents=True, exist_ok=True)
         with open(p, "wb") as f:
-            f.write(data if isinstance(data, bytes) else data.read())
+            if isinstance(data, bytes):
+                f.write(data)
+            else:
+                while True:
+                    chunk = data.read(65536)
+                    if not chunk:
+                        break
+                    f.write(chunk)
 
     def get_stream(self, key):
         # Copy into memory so the OS handle is released immediately. FileResponse plus the
@@ -41,9 +48,29 @@ class LocalPhotoStorage:
     def exists(self, key):
         return self._path(key).is_file()
 
+    def size(self, key):
+        return self._path(key).stat().st_size
+
+    def copy(self, src, dst):
+        p = self._path(dst)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(self._path(src), p)
+
     def url(self, key, expires=3600, download_name=None):
         token = signing.dumps({"k": key, "d": download_name, "e": int(time.time()) + expires}, salt="media")
         return f"/media/{token}/"
 
     def presign_upload(self, key, content_type, max_bytes, expires=600):
+        return None
+
+    def create_multipart(self, key, content_type):
+        return None
+
+    def presign_part(self, key, upload_id, part_number, expires=600):
+        return None
+
+    def complete_multipart(self, key, upload_id, parts):
+        return None
+
+    def abort_multipart(self, key, upload_id):
         return None

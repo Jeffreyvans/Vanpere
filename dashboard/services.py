@@ -1,8 +1,10 @@
 """Dashboard operations on photos and events (all callers must already have checked ownership)."""
+import io
 import zipfile
 
 from django.db.models import F
 from django.db.models.functions import Greatest
+from PIL import Image
 
 from events.models import Event
 from photos.models import Photo
@@ -29,15 +31,18 @@ def delete_photos(event, photos) -> int:
 
 
 def set_cover(event, photo) -> None:
-    """Copy an approved photo's medium version to be the event cover."""
+    """Copy an approved photo's preview into a metadata-free JPEG event cover."""
     storage = get_storage()
     stream = storage.get_stream(photo.key("medium"))
     try:
         data = stream.read()
     finally:
         stream.close()
+    cover = Image.open(io.BytesIO(data)).convert("RGB")
+    out = io.BytesIO()
+    cover.save(out, "JPEG", quality=82, optimize=True)
     event.cover_image = f"events/{event.id}/cover.jpg"
-    storage.put(event.cover_image, data, "image/jpeg")
+    storage.put(event.cover_image, out.getvalue(), "image/jpeg")
     event.save(update_fields=["cover_image"])
 
 
@@ -69,11 +74,12 @@ class _Sink:
 
 
 def stream_zip(photos, storage):
-    """Yield a ZIP of original photos in 64 KB pieces; never holds a whole photo or archive in RAM."""
+    """Yield a ZIP of original files in 64 KB pieces; never holds a whole file or archive in RAM."""
     sink = _Sink()
     archive = zipfile.ZipFile(sink, "w", zipfile.ZIP_STORED, allowZip64=True)
     for n, photo in enumerate(photos, 1):
-        info = zipfile.ZipInfo(f"photo-{n:04d}.jpg", date_time=photo.created_at.timetuple()[:6])
+        ext = photo.original_extension or ("jpg" if not photo.is_video else "mp4")
+        info = zipfile.ZipInfo(f"{photo.media_type}-{n:04d}.{ext}", date_time=photo.created_at.timetuple()[:6])
         info.compress_type = zipfile.ZIP_STORED
         source = storage.get_stream(photo.key("original"))
         try:

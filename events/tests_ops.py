@@ -85,6 +85,7 @@ class ExpiryTests(OpsBase):
         form = EventForm({"name": "X", "event_type": "other", "event_date": self.event.event_date.isoformat(),
                           "expires_on": (self.event.event_date + timedelta(days=10)).isoformat(), "location": "",
                           "description": "", "allow_uploads": "on", "max_upload_size_mb": 15,
+                          "max_video_size_mb": 500,
                           "max_photos_per_upload": 20, "pin": ""}, instance=self.event)
         self.assertTrue(form.is_valid(), form.errors)
         saved = form.save()

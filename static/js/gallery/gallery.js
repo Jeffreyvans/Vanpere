@@ -20,6 +20,20 @@ function start(root) {
   let heights = [];
 
   const want = () => (innerWidth >= 1000 ? 4 : innerWidth >= 700 ? 3 : 2);
+  const tileEls = new Map();
+
+  function placeMeta(p, tile) {
+    if (!(p.likes || p.comments)) return;
+    const meta = document.createElement("span");
+    meta.className = "tile-meta";
+    meta.setAttribute("aria-hidden", "true");
+    const like = document.createElement("span");
+    const comments = document.createElement("span");
+    like.textContent = `${p.likes || 0} likes`;
+    comments.textContent = `${p.comments || 0} comments`;
+    meta.append(like, comments);
+    tile.append(meta);
+  }
 
   function makeColumns() {
     colCount = want();
@@ -35,21 +49,43 @@ function start(root) {
 
   function place(p, index) {
     const k = heights.indexOf(Math.min(...heights));
-    heights[k] += p.h / p.w;
+    heights[k] += (p.w ? p.h / p.w : 1) || 1;
     const tile = document.createElement("button");
     tile.type = "button";
     tile.className = "tile loading";
-    tile.style.aspectRatio = `${p.w} / ${p.h}`;
-    tile.setAttribute("aria-label", `Open photo ${index + 1}`);
-    const img = document.createElement("img");
-    img.loading = "lazy";
-    img.alt = "";
-    img.addEventListener("load", () => tile.classList.remove("loading"));
-    img.addEventListener("error", () => tile.classList.remove("loading"));
-    img.src = p.thumb;
-    tile.append(img);
+    tile.style.aspectRatio = p.w && p.h ? `${p.w} / ${p.h}` : "4 / 3";
+    tile.setAttribute("aria-label", `Open item ${index + 1}`);
+    if (p.type === "video") {
+      tile.classList.add("tile-video");
+      if (p.thumb) {
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        img.alt = "";
+        img.addEventListener("load", () => tile.classList.remove("loading"));
+        img.addEventListener("error", () => tile.classList.remove("loading"));
+        img.src = p.thumb;
+        tile.append(img);
+      } else {
+        tile.classList.remove("loading");
+      }
+      const play = document.createElement("span");
+      play.className = "tile-play";
+      play.setAttribute("aria-hidden", "true");
+      play.textContent = "\u25B6";
+      tile.append(play);
+    } else {
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      img.alt = "";
+      img.addEventListener("load", () => tile.classList.remove("loading"));
+      img.addEventListener("error", () => tile.classList.remove("loading"));
+      img.src = p.thumb;
+      tile.append(img);
+    }
+    placeMeta(p, tile);
     tile.addEventListener("click", () => viewer.open(photos.indexOf(p)));
     cols[k].append(tile);
+    tileEls.set(p.id, tile);
   }
 
   function layout() {
@@ -66,7 +102,7 @@ function start(root) {
   }
 
   function refreshUi() {
-    $("count").textContent = total ? `${total} photo${total === 1 ? "" : "s"}` : "";
+    $("count").textContent = total ? `${total} item${total === 1 ? "" : "s"}` : "";
     $("empty").hidden = !(done && photos.length === 0);
     moreBtn.hidden = done;
   }
@@ -104,9 +140,25 @@ function start(root) {
     }
   }
 
+  function setCounts(id, patch) {
+    const p = photos.find((x) => x.id === id);
+    if (!p) return;
+    Object.assign(p, patch);
+    const tile = tileEls.get(id);
+    if (!tile) return;
+    const meta = tile.querySelector(".tile-meta");
+    if (meta) {
+      const spans = meta.children;
+      spans[0].textContent = `${p.likes || 0} likes`;
+      spans[1].textContent = `${p.comments || 0} comments`;
+    } else if (p.likes || p.comments) {
+      placeMeta(p, tile);
+    }
+  }
+
   const viewer = new Viewer({
     api, token, photos: () => photos, hasMore: () => !done, loadMore: load,
-    shareUrl: root.dataset.share, name: root.dataset.name,
+    shareUrl: root.dataset.share, name: root.dataset.name, setCounts,
     remove: (id) => {
       const i = photos.findIndex((p) => p.id === id);
       if (i >= 0) { photos.splice(i, 1); total = Math.max(0, total - 1); layout(); refreshUi(); }

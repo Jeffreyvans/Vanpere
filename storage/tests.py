@@ -1,3 +1,4 @@
+import io
 import tempfile
 
 from django.test import SimpleTestCase, override_settings
@@ -38,6 +39,31 @@ class LocalStorageTests(SimpleTestCase):
 
     def test_no_presign_for_local(self):
         self.assertIsNone(self.s.presign_upload("k", "image/jpeg", 100))
+
+    def test_size_counts_bytes(self):
+        self.s.put("events/a/b/x.jpg", b"data", "image/jpeg")
+        self.assertEqual(self.s.size("events/a/b/x.jpg"), 4)
+
+    def test_copy_duplicates_object(self):
+        self.s.put("events/a/b/x.jpg", b"data", "image/jpeg")
+        self.s.copy("events/a/b/x.jpg", "events/a/b/y.jpg")
+        self.assertTrue(self.s.exists("events/a/b/y.jpg"))
+        with self.s.get_stream("events/a/b/y.jpg") as f:
+            self.assertEqual(f.read(), b"data")
+        self.s.copy("events/a/b/x.jpg", "events/a/c/y.jpg")
+        self.assertTrue(self.s.exists("events/a/c/y.jpg"))
+
+    def test_put_accepts_file_like_and_streams_in_chunks(self):
+        import io
+        self.s.put("events/a/b/x.jpg", io.BytesIO(b"abcdef"), "image/jpeg")
+        with self.s.get_stream("events/a/b/x.jpg") as f:
+            self.assertEqual(f.read(), b"abcdef")
+
+    def test_multipart_unavailable_locally(self):
+        self.assertIsNone(self.s.create_multipart("k", "video/mp4"))
+        self.assertIsNone(self.s.presign_part("k", "uid", 1))
+        self.assertIsNone(self.s.complete_multipart("k", "uid", []))
+        self.assertIsNone(self.s.abort_multipart("k", "uid"))
 
 
 import importlib.util  # noqa: E402
@@ -130,3 +156,47 @@ class S3ClientCallTests(SimpleTestCase):
         self._storage(client).delete_prefix("events/a/b")
         client.delete_objects.assert_called_once_with(
             Bucket="vanpere", Delete={"Objects": [{"Key": "events/a/b/1.jpg"}, {"Key": "events/a/b/2.jpg"}]})
+
+    def test_put_streams_file_like_objects(self):
+        client = mock.MagicMock()
+        blob = io.BytesIO(b"streamed")
+        self._storage(client).put("events/a/b/x.jpg", blob, "image/jpeg")
+        client.put_object.assert_not_called()
+        client.upload_fileobj.assert_called_once_with(
+            blob, "vanpere", "events/a/b/x.jpg", ExtraArgs={"ContentType": "image/jpeg"})
+
+    def test_size_uses_head_object(self):
+        client = mock.MagicMock()
+        client.head_object.return_value = {"ContentLength": 123}
+        self.assertEqual(self._storage(client).size("events/a/b/x.jpg"), 123)
+        client.head_object.assert_called_once_with(Bucket="vanpere", Key="events/a/b/x.jpg")
+
+    def test_copy_targets_bucket_and_key(self):
+        client = mock.MagicMock()
+        self._storage(client).copy("events/a/b/x.jpg", "events/a/b/y.jpg")
+        client.copy_object.assert_called_once_with(
+            Bucket="vanpere", Key="events/a/b/y.jpg",
+            CopySource={"Bucket": "vanpere", "Key": "events/a/b/x.jpg"})
+
+    def test_multipart_lifecycle(self):
+        client = mock.MagicMock()
+        client.create_multipart_upload.return_value = {"UploadId": "uid-1"}
+        s = self._storage(client)
+        self.assertEqual(s.create_multipart("events/a/b/upload.bin", "video/mp4"), {"upload_id": "uid-1"})
+        client.create_multipart_upload.assert_called_once_with(
+            Bucket="vanpere", Key="events/a/b/upload.bin", ContentType="video/mp4")
+        url = s.presign_part("events/a/b/upload.bin", "uid-1", 2)
+        client.generate_presigned_url.assert_called_once_with(
+            "upload_part",
+            Params={"Bucket": "vanpere", "Key": "events/a/b/upload.bin",
+                    "UploadId": "uid-1", "PartNumber": 2},
+            ExpiresIn=600)
+        s.complete_multipart("events/a/b/upload.bin", "uid-1",
+                            [{"PartNumber": 1, "ETag": '"e1"'}, {"PartNumber": 2, "ETag": '"e2"'}])
+        client.complete_multipart_upload.assert_called_once_with(
+            Bucket="vanpere", Key="events/a/b/upload.bin", UploadId="uid-1",
+            MultipartUpload={"Parts": [
+                {"PartNumber": 1, "ETag": '"e1"'}, {"PartNumber": 2, "ETag": '"e2"'}]})
+        s.abort_multipart("events/a/b/upload.bin", "uid-1")
+        client.abort_multipart_upload.assert_called_once_with(
+            Bucket="vanpere", Key="events/a/b/upload.bin", UploadId="uid-1")

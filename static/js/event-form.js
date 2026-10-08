@@ -21,4 +21,25 @@ if (form) {
   form.addEventListener("input", update);
   form.addEventListener("change", update);
   update();
+
+  // One click, one submission: lock the button while the POST is in flight.
+  const btn = form.querySelector('button[type="submit"]');
+  if (btn) {
+    const idle = btn.textContent;
+    const busy = form.dataset.submitLabel || "Saving...";
+    const lock = () => {
+      if (btn.disabled) return false;
+      btn.disabled = true;
+      btn.setAttribute("aria-busy", "true");
+      btn.textContent = busy;
+      return true;
+    };
+    form.addEventListener("submit", lock);
+    window.addEventListener("pageshow", (e) => {
+      if (!e.persisted) return;
+      btn.disabled = false;
+      btn.removeAttribute("aria-busy");
+      btn.textContent = idle;
+    });
+  }
 }

@@ -1,13 +1,17 @@
 from datetime import timedelta, datetime, timezone as dt_tz
+from unittest import mock
 
 from django.core import mail
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
+from photos.tests import make_jpeg
 from . import timeutils
 from .models import CODE_ALPHABET, Event
+from .views import _new_create_token
 
 PW = "S0meLongPass!9"
 
@@ -60,7 +64,7 @@ class OrganiserTests(TestCase):
         d = timeutils.local_today() + timedelta(days=5)
         data = {"name": "Rudo's 30th", "event_type": "birthday", "event_date": d.isoformat(),
                 "expires_on": "", "location": "Harare", "description": "", "allow_uploads": "on",
-                "max_upload_size_mb": 15, "max_photos_per_upload": 20, "pin": ""}
+                "max_upload_size_mb": 15, "max_video_size_mb": 500, "max_photos_per_upload": 20, "pin": ""}
         data.update(kw)
         return d, data
 
@@ -153,3 +157,86 @@ class PublicTests(TestCase):
             self.client.post(url, {"pin": "0000"})
         self.client.post(url, {"pin": "4821"})
         self.assertNotIn(f"pin_ok:{ev.public_code}", self.client.session)
+
+
+class CreateResilienceTests(TestCase):
+    """The event must survive anything that happens after it is saved."""
+
+    def setUp(self):
+        cache.clear()
+        self.owner = User.objects.create_user(
+            "o@example.com", PW, email_verified=True, is_staff=True, is_superuser=True)
+        self.client.force_login(self.owner)
+
+    def _post_data(self, **kw):
+        d = timeutils.local_today() + timedelta(days=5)
+        data = {"name": "Rudo's 30th", "event_type": "birthday", "event_date": d.isoformat(),
+                "expires_on": "", "location": "Harare", "description": "", "allow_uploads": "on",
+                "max_upload_size_mb": 15, "max_video_size_mb": 500, "max_photos_per_upload": 20, "pin": ""}
+        data.update(kw)
+        return d, data
+
+    def test_email_failure_still_creates_and_redirects(self):
+        _, data = self._post_data()
+        with mock.patch("events.views.send_event_created", side_effect=OSError("smtp down")):
+            r = self.client.post(reverse("events:create"), data)
+        ev = Event.objects.get()
+        self.assertEqual(r.status_code, 302, r.status_code)
+        self.assertRedirects(r, reverse("events:detail", args=[ev.pk]))
+        self.assertEqual(ev.owner, self.owner)
+
+    def test_double_submission_creates_one_event(self):
+        _, data = self._post_data()
+        data["submission_token"] = _new_create_token()
+        r1 = self.client.post(reverse("events:create"), data)
+        r2 = self.client.post(reverse("events:create"), data)
+        self.assertEqual(Event.objects.count(), 1)
+        ev = Event.objects.get()
+        self.assertEqual(r1.status_code, 302)
+        self.assertEqual(r2.status_code, 302)
+        self.assertEqual(r1["Location"], r2["Location"])
+        self.assertEqual(r1["Location"], reverse("events:detail", args=[ev.pk]))
+
+    def test_fresh_token_per_form_render(self):
+        t1 = self.client.get(reverse("events:create")).context["submission_token"]
+        t2 = self.client.get(reverse("events:create")).context["submission_token"]
+        self.assertNotEqual(t1, t2)
+
+    def test_invalid_form_reuses_token(self):
+        _, data = self._post_data(name="")
+        token = _new_create_token()
+        data["submission_token"] = token
+        r = self.client.post(reverse("events:create"), data)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.context["submission_token"], token)
+        self.assertEqual(Event.objects.count(), 0)
+
+    def test_tampered_token_does_not_block_creation(self):
+        _, data = self._post_data()
+        data["submission_token"] = "not-a-real-token"
+        r = self.client.post(reverse("events:create"), data)
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Event.objects.count(), 1)
+
+    def test_cover_upload_failure_still_creates_event(self):
+        _, data = self._post_data()
+        data["cover"] = SimpleUploadedFile("cover.jpg", make_jpeg((400, 300)), "image/jpeg")
+        with mock.patch("events.forms.get_storage", side_effect=OSError("storage down")):
+            r = self.client.post(reverse("events:create"), data)
+        ev = Event.objects.get()
+        self.assertEqual(r.status_code, 302, r.status_code)
+        self.assertRedirects(r, reverse("events:detail", args=[ev.pk]))
+        self.assertFalse(ev.cover_image)
+
+    def test_edit_cover_upload_failure_does_not_500(self):
+        _, data = self._post_data()
+        self.client.post(reverse("events:create"), data)
+        ev = Event.objects.get()
+        _, edit = self._post_data(name="Renamed", cover=SimpleUploadedFile(
+            "cover.jpg", make_jpeg((400, 300)), "image/jpeg"))
+        with mock.patch("events.forms.get_storage", side_effect=OSError("storage down")):
+            r = self.client.post(reverse("events:edit", args=[ev.pk]), edit)
+        self.assertEqual(r.status_code, 302, r.status_code)
+        ev.refresh_from_db()
+        self.assertEqual(ev.name, "Renamed")
+        self.assertFalse(ev.cover_image)

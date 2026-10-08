@@ -1,20 +1,69 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block title %}{{ event.name }} dashboard | VanPere Digital{% endblock %}
-{% block content %}<div class="container"><header class="page-head"><p class="eyebrow">Event dashboard</p><h1>{{ event.name }}</h1></header>{% include "dashboard/_nav.html" %}
-<div class="stats"><div class="card"><strong>{{ stats.photos }}</strong><span>photos</span></div>
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}<div class="container">
+<header class="page-head"><p class="eyebrow">Event dashboard</p><h1>{{ event.name }}</h1>
+<p class="page-lead">{{ event.event_date|date:"j F Y" }}{% if event.location %} · {{ event.location }}{% endif %} · <a href="{{ event.public_path }}" target="_blank" rel="noopener">Live gallery</a></p>
+<div class="section-actions"><a class="btn gold" href="{{ event.public_path }}" target="_blank" rel="noopener">Open guest gallery</a> <a class="btn ghost" href="{% url 'events:detail' event.pk %}">Event details &amp; QR codes</a></div></header>
+{% include "dashboard/_nav.html" %}
+
+<section class="section compact" aria-labelledby="s-overview"><div class="section-head"><h2 id="s-overview">Overview</h2></div>
+<div class="stats">
+<div class="card"><strong>{{ stats.photos }}</strong><span>{% if stats.videos %}photos &amp; videos{% else %}photos{% endif %}</span></div>
+{% if stats.videos %}<div class="card"><strong>{{ stats.videos }}</strong><span>videos</span></div>{% endif %}
+<div class="card"><strong>{{ total_likes }}</strong><span>likes</span></div>
+<div class="card"><strong>{{ total_comments }}</strong><span><a href="{% url 'dashboard:comments' event.pk %}">comments</a></span></div>
 <div class="card"><strong>{{ stats.contributors }}</strong><span>contributors</span></div>
 <div class="card"><strong>{{ event.storage_used_bytes|filesizeformat }}</strong><span>storage used</span></div>
 <div class="card"><strong>{% if event.is_expired %}Expired{% else %}{{ event.days_remaining }}{% endif %}</strong><span>days remaining</span></div>
-<div class="card"><strong>{{ stats.pending }}</strong><span><a href="{% url 'dashboard:photos' event.pk %}?tab=pending">pending</a></span></div>
-<div class="card"><strong>{{ stats.open_reports }}</strong><span><a href="{% url 'dashboard:reports' event.pk %}">open reports</a></span></div></div>
-<div class="grid"><div class="card"><h2>Settings</h2>
+<div class="card"><strong>{{ stats.pending }}</strong><span><a href="{% url 'dashboard:photos' event.pk %}?tab=pending">pending review</a></span></div>
+<div class="card"><strong>{{ stats.open_reports }}</strong><span><a href="{% url 'dashboard:reports' event.pk %}">open reports</a></span></div>
+</div></section>
+
+<section class="section compact" aria-labelledby="s-media"><div class="section-head"><h2 id="s-media">Recent uploads</h2><p>Latest approved media, with engagement.</p>
+<div class="section-actions"><a class="btn ghost" href="{% url 'dashboard:photos' event.pk %}">Manage all photos</a></div></div>
+{% if recent_photos %}
+<div class="dgrid">{% for p in recent_photos %}<a class="dthumb" href="{% url 'dashboard:photos' event.pk %}?tab=approved">
+<img src="{{ p.thumb_url }}" alt="Uploaded by {{ p.uploader_name|default:'Anonymous' }}" loading="lazy">
+<span>{{ p.uploader_name|default:"Anonymous" }}<br>{{ p.likes_n }} likes · {{ p.comments_n }} comments · {{ p.created_at|date:"j M" }}</span></a>{% endfor %}</div>
+{% else %}<p class="empty-state">No approved photos yet. They will appear here as guests share them.</p>{% endif %}</section>
+
+<section class="section compact" aria-labelledby="s-engage"><div class="section-head"><h2 id="s-engage">Engagement</h2><p>What guests are loving.</p></div>
+{% if top_liked %}
+<div class="dgrid">{% for p in top_liked %}<a class="dthumb" href="{% url 'dashboard:photos' event.pk %}?tab=approved">
+<img src="{{ p.thumb_url }}" alt="Uploaded by {{ p.uploader_name|default:'Anonymous' }}" loading="lazy">
+<span><strong>{{ p.n_likes }} like{{ p.n_likes|pluralize }}</strong> · {{ p.comments_n }} comment{{ p.comments_n|pluralize }}<br>{{ p.uploader_name|default:"Anonymous" }}</span></a>{% endfor %}</div>
+{% else %}<p class="empty-state">No likes yet. Share the gallery and watch guest reactions appear here.</p>{% endif %}</section>
+
+<section class="section compact" aria-labelledby="s-comments"><div class="section-head"><h2 id="s-comments">Recent comments</h2><p>Approve or tidy up the conversation. Deleting removes it for everyone.</p>
+<div class="section-actions"><a class="btn ghost" href="{% url 'dashboard:comments' event.pk %}">View all comments</a></div></div>
+{% if recent_comments %}
+<table class="dtable"><thead><tr><th>Media</th><th>Comment</th><th>When</th><th>Action</th></tr></thead><tbody>
+{% for c in recent_comments %}<tr>
+<td><a href="{{ c.photo_share_url }}" target="_blank" rel="noopener"><img src="{{ c.photo_thumb }}" alt="" width="48" height="36" style="border-radius:6px;object-fit:cover;width:48px;height:36px"></a></td>
+<td><strong>{{ c.name|default:"Guest" }}</strong> — {{ c.body }}</td>
+<td>{{ c.created_at|date:"j M, H:i" }}</td>
+<td><form method="post" action="{% url 'dashboard:comment_delete' event.pk c.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn danger" type="submit" data-confirm="Delete this comment for everyone?">Delete</button></form></td>
+</tr>{% endfor %}</tbody></table>
+{% else %}<p class="empty-state">No comments yet.</p>{% endif %}</section>
+
+<section class="section compact" aria-labelledby="s-share"><div class="section-head"><h2 id="s-share">Event sharing</h2><p>One link in — copy it, or open event details for the QR code posters.</p></div>
+<div class="card">{% include "events/_share.html" %}</div></section>
+
+<section class="section compact" aria-labelledby="s-manage"><div class="section-head"><h2 id="s-manage">Event management</h2></div>
+<div class="grid">
+<div class="card"><h3>Settings</h3>
 <form method="post" action="{% url 'dashboard:toggle' event.pk 'allow_uploads' %}" class="toggle">{% csrf_token %}Uploads are <strong>{{ event.allow_uploads|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.allow_uploads|yesno:"off,on" }}</button></form>
 <form method="post" action="{% url 'dashboard:toggle' event.pk 'allow_downloads' %}" class="toggle">{% csrf_token %}Guest downloads of originals are <strong>{{ event.allow_downloads|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.allow_downloads|yesno:"off,on" }}</button></form>
 <form method="post" action="{% url 'dashboard:toggle' event.pk 'moderation_enabled' %}" class="toggle">{% csrf_token %}Moderation is <strong>{{ event.moderation_enabled|yesno:"on,off" }}</strong> <button class="btn" type="submit">Turn {{ event.moderation_enabled|yesno:"off,on" }}</button></form>
-<p><a href="{% url 'events:edit' event.pk %}">Edit event, expiry and viewing PIN</a> · <a href="{% url 'events:detail' event.pk %}">Share and QR</a></p></div>
-<div class="card"><h2>Download</h2>
+<p><a href="{% url 'events:edit' event.pk %}">Edit event, expiry and viewing PIN</a></p></div>
+<div class="card"><h3>Download</h3>
 {% if zip_large %}<p class="banner">This is a large event ({{ stats.approved }} photos). The ZIP streams originals and may take a while.</p>{% endif %}
 <p><a class="btn gold" href="{% url 'dashboard:download_zip' event.pk %}">Download approved photos (ZIP)</a></p></div>
-<div class="card danger-zone"><h2>Danger zone</h2>
+<div class="card danger-zone"><h3>Danger zone</h3>
 <p><a href="{% url 'dashboard:regenerate' event.pk %}">Regenerate public code</a> (invalidates the old QR code)</p>
-<p><a class="err" href="{% url 'dashboard:delete' event.pk %}">Delete event</a></p></div></div></div>{% endblock %}
+<p><a class="err" href="{% url 'dashboard:delete' event.pk %}">Delete event</a></p></div>
+</div></section>
+<script type="module" src="{% static 'js/share.js' %}"></script>
+<script type="module" src="{% static 'js/dashboard/select.js' %}"></script>
+</div>{% endblock %}

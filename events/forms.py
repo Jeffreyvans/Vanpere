@@ -1,3 +1,5 @@
+import logging
+
 from django import forms
 from django.conf import settings
 
@@ -5,6 +7,8 @@ from . import timeutils
 from .models import Event
 from .services import process_cover
 from storage import get_storage
+
+logger = logging.getLogger(__name__)
 
 
 class EventForm(forms.ModelForm):
@@ -23,18 +27,25 @@ class EventForm(forms.ModelForm):
         model = Event
         fields = ("name", "event_type", "event_date", "location", "description",
                   "allow_uploads", "allow_downloads", "moderation_enabled",
-                  "max_upload_size_mb", "max_photos_per_upload")
+                  "max_upload_size_mb", "max_video_size_mb", "max_photos_per_upload")
         widgets = {"event_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
                    "description": forms.Textarea(attrs={"rows": 3})}
 
     field_order = ("name", "event_type", "event_date", "expires_on", "location", "description", "cover",
                    "allow_uploads", "allow_downloads", "moderation_enabled",
-                   "max_upload_size_mb", "max_photos_per_upload", "pin", "clear_pin")
+                   "max_upload_size_mb", "max_video_size_mb", "max_photos_per_upload", "pin", "clear_pin")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cover_bytes = None
+        self.cover_failed = False
         self._orig_expires = self.instance.expires_at if self.instance.pk else None
+        self.fields["max_video_size_mb"].help_text = (
+            f"Videos are uploaded straight to the cloud in parts, up to a server cap of "
+            f"{settings.MAX_VIDEO_UPLOAD_MB} MB.")
+        self.fields["max_video_size_mb"].initial = max(
+            1, min(self.fields["max_video_size_mb"].initial or settings.MAX_VIDEO_UPLOAD_MB,
+                   settings.MAX_VIDEO_UPLOAD_MB))
         self.fields["expires_on"].help_text = (
             f"Leave blank to expire {settings.DEFAULT_EVENT_EXPIRY_DAYS} days after the event date.")
         # UUID primary keys are assigned at instantiation, so pk is set before the row exists.
@@ -86,7 +97,15 @@ class EventForm(forms.ModelForm):
         if self.cleaned_data.get("pin"):
             event.set_pin(self.cleaned_data["pin"])
         if self._cover_bytes:
-            event.cover_image = f"events/{event.id}/cover.jpg"
-            get_storage().put(event.cover_image, self._cover_bytes, "image/jpeg")
+            # The event is the source of truth: a storage hiccup on the cover must
+            # never lose the event or surface as a failed request.
+            key = f"events/{event.id}/cover.jpg"
+            try:
+                get_storage().put(key, self._cover_bytes, "image/jpeg")
+            except Exception:
+                logger.exception("Cover upload failed for event %s", event.id)
+                self.cover_failed = True
+            else:
+                event.cover_image = key
         event.save()
         return event

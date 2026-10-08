@@ -4,7 +4,9 @@ import struct
 import tempfile
 import unittest
 from datetime import timedelta
+from unittest import mock
 
+from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -15,6 +17,7 @@ from accounts.models import User
 from events import timeutils
 from events.models import Event
 from storage import get_storage
+from storage.local import LocalPhotoStorage
 from .models import Photo, UploadConsent
 from .security import device_hash
 from .services.image_pipeline import DuplicatePhoto, PhotoRejected, process_photo
@@ -26,6 +29,7 @@ except ImportError:
     pillow_heif = None
 
 TOKEN = "a" * 32
+VIDEO = b"\x00\x00\x00\x18ftypmp42mp4" + b"\x00" * 8192
 
 
 def make_jpeg(size=(800, 600), exif=None, color=(200, 80, 40)):
@@ -62,19 +66,24 @@ class MediaMixin:
 
 class PipelineTests(MediaMixin, TestCase):
     def _photo(self, raw, **kw):
+        declared = kw.pop("declared_content_type", "image/jpeg")
         p = Photo.objects.create(event=self.event, uploader_hash="u", ip_hash="i",
-                                 declared_content_type="image/jpeg", **kw)
-        get_storage().put(p.upload_key, raw, "image/jpeg")
+                                 declared_content_type=declared, **kw)
+        get_storage().put(p.upload_key, raw, declared)
         return p
 
     def test_three_versions_sizes_and_usage_counter(self):
         p = process_photo(self._photo(make_jpeg((3000, 2000))).id)
         self.assertEqual(p.status, Photo.Status.APPROVED)
+        self.assertEqual(p.media_type, Photo.MediaType.IMAGE)
         s = get_storage()
         sizes = {v: Image.open(s.get_stream(p.key(v))).size for v in ("original", "medium", "thumb")}
+        formats = {v: Image.open(s.get_stream(p.key(v))).format for v in ("original", "medium", "thumb")}
         self.assertEqual(sizes["original"], (3000, 2000))
-        self.assertEqual(max(sizes["medium"]), 1600)
-        self.assertEqual(max(sizes["thumb"]), 480)
+        self.assertEqual(max(sizes["medium"]), settings.PREVIEW_EDGE)
+        self.assertEqual(max(sizes["thumb"]), settings.THUMB_EDGE)
+        self.assertEqual(formats, {"original": "JPEG", "medium": "WEBP", "thumb": "WEBP"})
+        self.assertTrue(p.key("original").endswith("original.jpg"))
         self.event.refresh_from_db()
         self.assertEqual(self.event.storage_used_bytes, p.total_bytes)
         self.assertFalse(s.exists(p.upload_key))
@@ -90,11 +99,13 @@ class PipelineTests(MediaMixin, TestCase):
         p = process_photo(self._photo(make_jpeg((100, 50), exif=exif.tobytes())).id)
         self.assertEqual((p.width, p.height), (50, 100))
 
-    def test_gps_stripped_from_every_version(self):
+    def test_gps_preserved_in_original_stripped_from_derivatives(self):
         raw = make_jpeg(exif=exif_with_gps())
         self.assertTrue(Image.open(io.BytesIO(raw)).getexif().get_ifd(0x8825), "fixture must contain GPS")
         p = process_photo(self._photo(raw).id)
-        for v in ("original", "medium", "thumb"):
+        original = get_storage().get_stream(p.key("original"))
+        self.assertTrue(Image.open(original).getexif().get_ifd(0x8825), "originals are stored untouched")
+        for v in ("medium", "thumb"):
             img = Image.open(get_storage().get_stream(p.key(v)))
             exif = img.getexif()
             self.assertNotIn(0x8825, exif)
@@ -102,15 +113,20 @@ class PipelineTests(MediaMixin, TestCase):
             self.assertNotIn("exif", img.info)
 
     @unittest.skipIf(pillow_heif is None, "pillow-heif not installed")
-    def test_heic_converted_to_jpeg(self):
+    def test_heic_original_preserved_derivatives_webp(self):
         buf = io.BytesIO()
         Image.new("RGB", (64, 48), "red").save(buf, "HEIF")
-        p = process_photo(self._photo(buf.getvalue()).id)
-        self.assertEqual(Image.open(get_storage().get_stream(p.key("original"))).format, "JPEG")
+        p = process_photo(self._photo(buf.getvalue(), declared_content_type="image/heic").id)
+        self.assertEqual(Image.open(get_storage().get_stream(p.key("original"))).format, "HEIF")
+        self.assertEqual(Image.open(get_storage().get_stream(p.key("medium"))).format, "WEBP")
+        self.assertEqual(p.original_extension, "heic")
 
     def test_rejects_non_image_and_oversize_dimensions(self):
-        with self.assertRaises(PhotoRejected):
-            build_versions(b"not an image at all")
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as junk:
+            junk.write(b"not an image at all")
+            junk.flush()
+            with self.assertRaises(PhotoRejected):
+                build_versions(junk.name, settings.THUMB_EDGE, settings.PREVIEW_EDGE)
         with self.assertRaises(PhotoRejected):
             process_photo(self._photo(b"%PDF-1.4 fake").id)
 
@@ -127,6 +143,45 @@ class PipelineTests(MediaMixin, TestCase):
         process_photo(self._photo(raw).id)
         with self.assertRaises(DuplicatePhoto):
             process_photo(self._photo(raw).id)
+
+    def test_video_copied_without_derivatives(self):
+        vid = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 4096
+        p = process_photo(self._photo(vid, declared_content_type="video/mp4",
+                                     media_type=Photo.MediaType.VIDEO).id)
+        self.assertEqual(p.status, Photo.Status.APPROVED)
+        self.assertEqual(p.media_type, Photo.MediaType.VIDEO)
+        self.assertEqual(p.original_extension, "mp4")
+        s = get_storage()
+        self.assertEqual(s.size(p.key("original")), len(vid))
+        self.assertFalse(s.exists(p.key("medium")))
+        self.assertFalse(s.exists(p.key("thumb")))
+        self.assertFalse(s.exists(p.upload_key))
+        self.assertEqual(p.total_bytes, len(vid))
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.storage_used_bytes, p.total_bytes)
+
+
+class MultipartLocalStorage(LocalPhotoStorage):
+    """Local backend that also emulates S3 multipart, for API-level multipart tests."""
+
+    def __init__(self):
+        super().__init__()
+        self.last_uid = ""
+        self.completed = []
+        self.aborted = 0
+
+    def create_multipart(self, key, content_type):
+        self.last_uid = f"uid-{key}"
+        return {"upload_id": self.last_uid}
+
+    def presign_part(self, key, upload_id, part_number, expires=600):
+        return f"https://fake/part/{part_number}"
+
+    def complete_multipart(self, key, upload_id, parts):
+        self.completed += parts
+
+    def abort_multipart(self, key, upload_id):
+        self.aborted += 1
 
 
 class ApiTests(MediaMixin, TestCase):
@@ -237,6 +292,102 @@ class ApiTests(MediaMixin, TestCase):
     def test_upload_page_renders(self):
         r = self.client.get(reverse("photos:upload", args=[self.event.public_code]))
         self.assertContains(r, 'data-max-mb="15"')
+        self.assertContains(r, 'data-max-video="500"')
+
+    def test_video_fallback_flow(self):
+        self._consent()
+        r = self._init(VIDEO, content_type="video/mp4", media_type="video")
+        self.assertNotIn("upload", r.json())
+        pid = r.json()["photo_id"]
+        self.assertEqual(self._send_file(pid, VIDEO).status_code, 200)
+        self.assertEqual(self._post("finalise", photo_id=pid).json()["status"], "approved")
+        p = Photo.objects.get()
+        self.assertEqual(p.media_type, Photo.MediaType.VIDEO)
+        self.assertEqual(p.original_extension, "mp4")
+        s = get_storage()
+        self.assertTrue(s.exists(p.key("original")))
+        self.assertFalse(s.exists(p.key("medium") or p.key("thumb")))
+        self.assertEqual(p.total_bytes, len(VIDEO))
+
+    def test_video_over_event_limit_rejected(self):
+        self.event.max_video_size_mb = 1
+        self.event.save()
+        self._consent()
+        r = self._init(VIDEO, content_type="video/mp4", media_type="video", size=2 * 1024 * 1024)
+        self.assertEqual(r.status_code, 413)
+        self.assertEqual(r.json()["limit_mb"], 1)
+
+    def test_unsupported_media_type_rejected(self):
+        self._consent()
+        self.assertEqual(self._init(b"x", content_type="application/octet-stream").status_code, 415)
+        self.assertEqual(self._init(VIDEO, content_type="image/jpeg", media_type="video").status_code, 415)
+        self.assertEqual(self._init(VIDEO, content_type="video/mp4", media_type="audio").status_code, 415)
+
+    def test_poster_uploaded_stored_as_webp_and_capped(self):
+        self._consent()
+        pid = self._init(VIDEO, content_type="video/mp4", media_type="video").json()["photo_id"]
+        self._send_file(pid, VIDEO)
+        self.assertEqual(self._post("finalise", photo_id=pid).status_code, 200)
+        p = Photo.objects.get()
+        url = reverse("photos:poster", kwargs={"code": self.event.public_code, "photo_id": p.id})
+        poster = make_jpeg((400, 300))
+        r = self.client.post(url, {"file": SimpleUploadedFile("poster.jpg", poster, "image/jpeg")},
+                             HTTP_X_DEVICE_TOKEN=TOKEN)
+        self.assertEqual(r.status_code, 200)
+        p.refresh_from_db()
+        self.assertTrue(p.poster_bytes > 0)
+        self.assertEqual(Image.open(get_storage().get_stream(p.key("poster"))).format, "WEBP")
+        big = poster + b"\x00" * (settings.POSTER_MAX_KB * 1024 + 2)
+        r2 = self.client.post(url, {"file": SimpleUploadedFile("big.jpg", big, "image/jpeg")},
+                              HTTP_X_DEVICE_TOKEN=TOKEN)
+        self.assertEqual(r2.status_code, 413)
+        r3 = self.client.post(url, {"file": SimpleUploadedFile("x.bin", b"junk", "application/octet-stream")},
+                              HTTP_X_DEVICE_TOKEN=TOKEN)
+        self.assertEqual(r3.status_code, 422)
+
+    def test_abort_drops_multipart_row(self):
+        st = MultipartLocalStorage()
+        with mock.patch("photos.api.get_storage", return_value=st), \
+                mock.patch("photos.services.image_pipeline.get_storage", return_value=st):
+            self._consent()
+            body = {"content_type": "video/mp4", "media_type": "video", "size": len(VIDEO),
+                    "hash": hashlib.sha256(VIDEO).hexdigest(), "name": "Ann"}
+            r = self._post("init", body)
+            self.assertEqual(r.status_code, 200, r.content)
+            self.assertIsNotNone(r.json()["multipart"]["upload_id"])
+            pid = r.json()["photo_id"]
+            part = self._post("upload_part", {"upload_id": r.json()["multipart"]["upload_id"], "part": 1},
+                              photo_id=pid)
+            self.assertEqual(part.status_code, 200)
+            self.assertTrue(part.json()["url"].startswith("https://fake/"))
+            self.assertEqual(self._post("abort_upload", photo_id=pid).status_code, 200)
+            self.assertEqual(st.aborted, 1)
+            self.assertFalse(Photo.objects.exists())
+
+    def test_multipart_video_finalise_completes_and_approves(self):
+        st = MultipartLocalStorage()
+        with mock.patch("photos.api.get_storage", return_value=st), \
+                mock.patch("photos.services.image_pipeline.get_storage", return_value=st):
+            self._consent()
+            body = {"content_type": "video/mp4", "media_type": "video", "size": len(VIDEO),
+                    "hash": hashlib.sha256(VIDEO).hexdigest(), "name": "Ann"}
+            r = self._post("init", body)
+            uid = r.json()["multipart"]["upload_id"]
+            pid = r.json()["photo_id"]
+            st.put(f"events/{self.event.id}/{pid}/upload.bin", VIDEO, "video/mp4")
+            fin = self._post("finalise", photo_id=pid,
+                             data={"parts": [{"n": 1, "e": '"etag1"'}], "upload_id": uid})
+            self.assertEqual(fin.json()["status"], "approved")
+            self.assertEqual(st.completed, [{"PartNumber": 1, "ETag": '"etag1"'}])
+            p = Photo.objects.get()
+            self.assertTrue(p.is_video)
+            self.assertFalse(st.exists(p.key("medium")))
+            self.assertEqual(st.size(p.key("original")), len(VIDEO))
+
+    def test_finalise_requires_completed_objects(self):
+        self._consent()
+        pid = self._init(VIDEO, content_type="video/mp4", media_type="video").json()["photo_id"]
+        self.assertEqual(self._post("finalise", photo_id=pid).status_code, 400)
 
 
 class GuestNoAccountTests(MediaMixin, TestCase):

@@ -29,7 +29,9 @@ class CSPMiddleware:
         bucket = " ".join(storage_origins())
         response["Content-Security-Policy"] = "; ".join([
             "default-src 'self'", "script-src 'self'", "style-src 'self'",
-            f"img-src 'self' data: blob: {bucket}".strip(), f"connect-src 'self' {bucket}".strip(),
+            f"img-src 'self' data: blob: {bucket}".strip(),
+            f"media-src 'self' blob: {bucket}".strip(),
+            f"connect-src 'self' {bucket}".strip(),
             "font-src 'self'", "object-src 'none'", "base-uri 'self'", "form-action 'self'",
             "frame-ancestors 'none'"])
         return response
